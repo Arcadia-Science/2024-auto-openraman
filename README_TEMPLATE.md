@@ -1,13 +1,11 @@
 
-# [PACKAGE-NAME]
+# [Auto-OpenRaman]
 
-This repo contains a Python package called `[PACKAGE_NAME]`.
+This repo contains a Python package called `[Auto-OpenRaman]`.
 
-[DESCRIPTION OF WHAT THE PACKAGE DOES].
+This package uses Micro-Manager and Pycro-Manager to interface with the OpenRaman spectrometer. It provides a UI for spectrum visualization and uses the Pycro-Manager backend to control additional hsrdware.
 
 ## Installation
-
-The package is hosted on PyPI and can be installed using pip:
 
 ```bash
 pip install [PACKAGE-NAME]
