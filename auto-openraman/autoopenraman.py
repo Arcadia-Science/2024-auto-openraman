@@ -44,6 +44,7 @@ def update_from_camera():
     """Acquire an image using pycromanager and update the shared image data."""
     current_image = {"data": None}
     try:
+        core.snap_image()
         tagged_image = core.get_tagged_image()
         image_array = np.reshape(
             tagged_image.pix,
