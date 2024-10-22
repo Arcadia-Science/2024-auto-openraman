@@ -22,7 +22,7 @@ def extract_stage_positions(file_path) -> Tuple[np.ndarray, List[str]]:
         # Get the position array from DevicePositions
         device_positions = position['DevicePositions']['array']
         for device in device_positions:
-            if device['Device']['scalar'] == 'XY':
+            if device['Device']['scalar'].startswith('XY'):
                 xy_position = device['Position_um']['array']
                 coordinates.append(xy_position)
                 labels.append(position['Label']['scalar'])
@@ -33,13 +33,12 @@ def extract_stage_positions(file_path) -> Tuple[np.ndarray, List[str]]:
 
     return coordinates_array, labels
 
-xy_positions, labels = extract_stage_positions('data/stage_positions/PositionList.pos')
-
+xy_positions, labels = extract_stage_positions('data/stage_positions/priorstage_2x2mockgrid.pos')
 with Acquisition(directory='data/', name='test') as acq:
     events = multi_d_acquisition_events(
         num_time_points=5,
         time_interval_s=0,
         xy_positions=xy_positions,
         position_labels=labels,
-        order='tp')
+        order='pt')
     acq.acquire(events)
