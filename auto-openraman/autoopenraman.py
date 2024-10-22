@@ -6,18 +6,6 @@ import pylab as pl
 from pycromanager import Core, Studio
 from scipy.signal import medfilt
 
-''' getting current ROI from pycromanager
-from pycromanager import Studio
-studio = Studio(convert_camel_case=False)
-snap_manager = studio.get_snap_live_manager()
-cur_image = snap_manager.get_display().get_image_plus()
-roi = cur_image.get_roi()
-roi.get_bounds().x
-161
-roi.get_bounds().y
-155
-roi.get_bounds().width
-'''
 # Ensure TKAgg is used for matplotlib
 matplotlib.use("TKAgg")
 
