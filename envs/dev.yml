@@ -1,8 +1,9 @@
-name: pycro
+name: autoopenraman-dev
 channels:
   - defaults
 dependencies:
   - python=3.12
   - conda-forge::matplotlib
   - scipy
+  - plotly::plotly
 prefix: /Users/ilya_arcadia/miniconda3/envs/pycro

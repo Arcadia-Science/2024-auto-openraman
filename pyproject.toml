@@ -13,18 +13,21 @@ style = "pep440"
 dirty = true
 
 [tool.poetry]
-name = "[PACKAGE_NAME]"
+name = "autoopenraman"
 # This version is a placeholder. It will be updated at build time by poetry-dynamic-versioning
 # from the latest git tag.
-version = "0.0.0"
-description = "[DESCRIPTION OF THE PACKAGE]"
-authors = ["[FIRST] [LAST] <[EMAIL]>"]
+version = "0.0.1"
+description = "Automation of OpenRaman"
+authors = ["Ilya Kolb <ilya.kolb.0@gmail.com>"]
 readme = "README.md"
 license = "MIT"
-packages = [{ include = "[PACKAGE_NAME]" }]
-homepage = "https://github.com/Arcadia-Science/[PACKAGE-NAME]"
-repository = "https://github.com/Arcadia-Science/[PACKAGE-NAME]"
-documentation = "https://github.com/Arcadia-Science/[PACKAGE-NAME]/blob/main/README.md"
+packages = [{ include = "autoopenraman" }]
+homepage = "https://github.com/Arcadia-Science/"
+repository = "https://github.com/Arcadia-Science/2024-auto-openraman"
+documentation = "https://github.com/Arcadia-Science/2024-auto-openraman/blob/main/README.md"
+
+[tool.poetry.scripts]
+autoopenraman = "autoopenraman.cli:main"
 
 [[tool.poetry.source]]
 name = "pypi"
