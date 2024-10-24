@@ -5,7 +5,7 @@ from pathlib import Path
 from autoopenraman.utils import extract_stage_positions
 
 
-class CLIparse(object):
+class CLIparse:
     def __init__(self) -> None:
         parser = argparse.ArgumentParser(description='AutoOpenRaman acquisition',
                                          usage='''autoopenraman <command> [<args>]''')
@@ -47,10 +47,10 @@ class CLIparse(object):
         save_dir = Path(args.save_dir)
 
         from autoopenraman.acq import main as acq_main
-        acq_main(_n_averages=n_averages,
+        acq_main(n_averages=n_averages,
                  xy_positions=xy_positions,
                  labels=labels,
-                 _save_dir=save_dir)
+                 save_dir=save_dir)
     def plot(self):
         print("Plot mode")
 
