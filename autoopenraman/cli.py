@@ -21,6 +21,9 @@ class CLIparse:
 
     def live(self):
         print("Live mode")
+
+        from autoopenraman.live import main as live_main
+        live_main()
     
     def acq(self):
         print("Acquisition mode")
