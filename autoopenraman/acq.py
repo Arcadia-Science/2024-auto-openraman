@@ -14,6 +14,7 @@ class AcquisitionManager:
         self.n_averages = n_averages
         self.save_dir = Path(save_dir)
         self.xy_positions = xy_positions
+        self.n_positions = len(xy_positions) if xy_positions is not None else 1
         self.labels = labels
         self.spectrum_list = []
 
@@ -42,14 +43,14 @@ class AcquisitionManager:
             self.spectrum_list = []
 
         # Update the plot
-        '''
+        
         self.line.set_data(x, img_spectrum)
         self.ax.set_xlim(0, len(img_spectrum))
         self.ax.set_ylim(np.min(img_spectrum), np.max(img_spectrum))
         self.f.canvas.draw()
         self.f.canvas.flush_events()
-        '''
-        return image, metadata
+        
+        # return image, metadata
 
     def mock_acquisition(self):
         '''Mocks the Acquisition engine'''
@@ -66,17 +67,32 @@ class AcquisitionManager:
         # Mock acquisition (for testing purposes)
         # for i in range(5):
         #     self.mock_acquisition()
-
-        with Acquisition(image_process_fn=self.img_process_fn,
-                         debug=False,
-                         show_display=False) as acq:
+        
+        '''
+        n_trials = 0
+        if self.n_positions > 1:
+            n_trials = self.n_positions * self.n_averages
+            mock_positions = [{'PositionName': f'Pos{i}'} for i in range(self.n_positions)]
+        else:
+            n_trials = self.n_averages
+            mock_positions = [{'PositionName': 'DefaultPos'}]
+        '''
+        with Acquisition(show_display=False) as acq:
             events = multi_d_acquisition_events(
                 num_time_points=self.n_averages,
                 time_interval_s=0.5,
                 xy_positions=self.xy_positions,
                 position_labels=self.labels,
                 order='pt')
-            acq.acquire(events)
+            print(events)
+
+            for i,event in enumerate(events):
+                future = acq.acquire(event)
+                image = future.await_image_saved(event['axes'], return_image = True, return_metadata=False)
+                metadata = event['axes']
+                metadata['PositionName'] = metadata.get('position', 'DefaultPos')
+                self.img_process_fn(image, metadata)
+
 
         print(f"Time elapsed: {time.time() - start:.2f} s")
 
