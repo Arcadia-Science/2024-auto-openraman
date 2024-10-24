@@ -1,8 +1,8 @@
 from tkinter import Button, Checkbutton, Entry, IntVar, Label
 
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
-import pylab as pl
 from pycromanager import Core, Studio
 from scipy.signal import medfilt
 
@@ -14,7 +14,7 @@ core = Core()
 print(core)
 studio = Studio(convert_camel_case=False)
 
-fig, ax = pl.subplots()
+fig, ax = plt.subplots()
 x = np.linspace(0, 10, 200)
 y = np.zeros_like(x)  # Placeholder for y data
 line, = ax.plot(x, y)
@@ -156,4 +156,4 @@ entry_kernel_size.pack()
 # Start the animation automatically
 anim()
 
-pl.show()
+plt.show()
