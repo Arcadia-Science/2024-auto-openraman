@@ -44,9 +44,11 @@ class AcquisitionManager:
 
         # Update the plot
         
-        self.line.set_data(x, img_spectrum)
+        
+        avg_spectrum = np.mean(self.spectrum_list, axis=0) if len(self.spectrum_list) > 0 else img_spectrum
+        self.line.set_data(x, avg_spectrum)
         self.ax.set_xlim(0, len(img_spectrum))
-        self.ax.set_ylim(np.min(img_spectrum), np.max(img_spectrum))
+        self.ax.set_ylim(np.min(avg_spectrum), np.max(avg_spectrum))
         self.f.canvas.draw()
         self.f.canvas.flush_events()
         
@@ -80,7 +82,7 @@ class AcquisitionManager:
         with Acquisition(show_display=False) as acq:
             events = multi_d_acquisition_events(
                 num_time_points=self.n_averages,
-                time_interval_s=0.5,
+                time_interval_s=2,
                 xy_positions=self.xy_positions,
                 position_labels=self.labels,
                 order='pt')
@@ -90,7 +92,10 @@ class AcquisitionManager:
                 future = acq.acquire(event)
                 image = future.await_image_saved(event['axes'], return_image = True, return_metadata=False)
                 metadata = event['axes']
+
+                # temporary workaround due to https://github.com/micro-manager/pycro-manager/issues/799
                 metadata['PositionName'] = metadata.get('position', 'DefaultPos')
+                
                 self.img_process_fn(image, metadata)
 
 
