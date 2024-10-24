@@ -8,12 +8,16 @@ This package uses Micro-Manager and Pycro-Manager to interface with the OpenRama
 ## Installation
 
 ```bash
-pip install [PACKAGE-NAME]
+pip install autoopenraman
 ```
 
 ## Usage
 
-[DOCUMENTATION ABOUT HOW TO USE THE PACKAGE]
+After installation, the package can be used using the command-line interface. The package provides a command-line interface with the following commands:
+
+- `autoopenraman live`: Acquisition in live mode
+- `autoopenraman acq`: Timed acquisition
+- `autoopenraman plot`: Plot collected data
 
 ## Development
 
@@ -22,8 +26,8 @@ pip install [PACKAGE-NAME]
 We use poetry for dependency management and build tooling. You can either install poetry globally or within a virtual environment in order to isolate poetry itself. We recommend the latter. First, create a new conda environment from the `dev.yml` environment file:
 
 ```bash
-conda env create -n [PACKAGE-NAME]-dev -f envs/dev.yml
-conda activate [PACKAGE-NAME]-dev
+conda env create -n autoopenraman-dev -f envs/dev.yml
+conda activate autoopenraman-dev
 ```
 
 Next, install dependencies, including the development, documentation, and build dependencies:
