@@ -25,6 +25,7 @@ class AcquisitionManager:
 
     def img_process_fn(self, image, metadata):
         print("img_process_fn")
+        fname = metadata.get('PositionName', metadata.get('Position', 'DefaultPos'))
         img_spectrum = image_to_spectrum(image)
 
         x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
@@ -34,7 +35,6 @@ class AcquisitionManager:
             self.spectrum_list = np.array(self.spectrum_list)
             avg_spectrum = np.mean(self.spectrum_list, axis=0)
 
-            fname = metadata.get('PositionName', metadata.get('Position', 'DefaultPos'))
             write_spectrum(self.save_dir / (fname + '.csv'), x, avg_spectrum)
             
             with open(self.save_dir / (fname + '.json'), 'w') as f:
@@ -49,6 +49,7 @@ class AcquisitionManager:
         self.line.set_data(x, avg_spectrum)
         self.ax.set_xlim(0, len(img_spectrum))
         self.ax.set_ylim(np.min(avg_spectrum), np.max(avg_spectrum))
+        self.ax.set_title(fname)
         self.f.canvas.draw()
         self.f.canvas.flush_events()
         
@@ -82,7 +83,7 @@ class AcquisitionManager:
         with Acquisition(show_display=False) as acq:
             events = multi_d_acquisition_events(
                 num_time_points=self.n_averages,
-                time_interval_s=2,
+                time_interval_s=[0.5]*self.n_averages,
                 xy_positions=self.xy_positions,
                 position_labels=self.labels,
                 order='pt')
