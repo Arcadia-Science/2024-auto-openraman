@@ -10,9 +10,11 @@ from autoopenraman.utils import image_to_spectrum, write_spectrum
 
 
 class AcquisitionManager:
-    def __init__(self, n_averages, save_dir):
+    def __init__(self, n_averages, save_dir, xy_positions, labels):
         self.n_averages = n_averages
         self.save_dir = Path(save_dir)
+        self.xy_positions = xy_positions
+        self.labels = labels
         self.spectrum_list = []
 
         self.f, self.ax = plt.subplots()
@@ -55,7 +57,7 @@ class AcquisitionManager:
         time.sleep(1)
         self.img_process_fn(np.random.random((100, 100)), {'PositionName': 'Mock Position'})
 
-    def run_acquisition(self, xy_positions, labels):
+    def run_acquisition(self):
         start = time.time()
 
         plt.show(block=False)
@@ -67,20 +69,20 @@ class AcquisitionManager:
 
         with Acquisition(image_process_fn=self.img_process_fn,
                          debug=False,
-                         show_display=False) as acq:  # directory='data/', name='test'
+                         show_display=False) as acq:
             events = multi_d_acquisition_events(
                 num_time_points=self.n_averages,
                 time_interval_s=0.5,
-                xy_positions=xy_positions,
-                position_labels=labels,
+                xy_positions=self.xy_positions,
+                position_labels=self.labels,
                 order='pt')
             acq.acquire(events)
 
         print(f"Time elapsed: {time.time() - start:.2f} s")
 
 def main(n_averages, xy_positions, labels, save_dir):
-    acquisition_manager = AcquisitionManager(n_averages, save_dir)
-    acquisition_manager.run_acquisition(xy_positions, labels)
+    acquisition_manager = AcquisitionManager(n_averages, save_dir, xy_positions, labels)
+    acquisition_manager.run_acquisition()
 
 if __name__ == '__main__':
     pass
