@@ -1,7 +1,9 @@
 from tkinter import Button, Checkbutton, Entry, IntVar, Label
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.animation import FuncAnimation
 from pycromanager import Core, Studio
 from scipy.signal import medfilt
 
@@ -21,7 +23,6 @@ class LiveModeManager:
         self.x = np.linspace(0, 10, 200)
         self.y = np.zeros_like(self.x)  # Placeholder for y data
         self.line, = self.ax.plot(self.x, self.y)
-        self.canvas = self.fig.canvas.get_tk_widget()
 
         # Variables to hold y-axis bounds and control options
         self.y_min, self.y_max = None, None
@@ -33,60 +34,59 @@ class LiveModeManager:
         # Set up the UI controls
         self.setup_controls()
 
+    def run(self):
+        # Initialize the animation
+        self.ani = FuncAnimation(self.fig, self.update_frame, interval=50, cache_frame_data=False)
+        plt.show()
 
     def setup_controls(self):
         # Add controls directly in the main window
-        Label(self.canvas.master, text="Y Min:").pack()
-        self.entry_min = Entry(self.canvas.master)
+        Label(self.fig.canvas.get_tk_widget().master, text="Y Min:").pack()
+        self.entry_min = Entry(self.fig.canvas.get_tk_widget().master)
         self.entry_min.pack()
 
-        Label(self.canvas.master, text="Y Max:").pack()
-        self.entry_max = Entry(self.canvas.master)
+        Label(self.fig.canvas.get_tk_widget().master, text="Y Max:").pack()
+        self.entry_max = Entry(self.fig.canvas.get_tk_widget().master)
         self.entry_max.pack()
 
-        Button(self.canvas.master, text="Set Y Bounds", command=self.set_y_bounds).pack()
+        Button(self.fig.canvas.get_tk_widget().master, text="Set Y Bounds", command=self.set_y_bounds).pack()
 
         # Add the autoscale checkbox
-        Checkbutton(self.canvas.master, text="Y Autoscale", variable=self.autoscale).pack()
+        Checkbutton(self.fig.canvas.get_tk_widget().master, text="Y Autoscale", variable=self.autoscale).pack()
 
         # Add the use ROI button
-        Button(self.canvas.master, text="Update ROI", command=self.update_roi).pack()
+        Button(self.fig.canvas.get_tk_widget().master, text="Update ROI", command=self.update_roi).pack()
 
         # Add the reverse y checkbox
-        Checkbutton(self.canvas.master, text="Reverse Y", variable=self.reverse_y).pack()
+        Checkbutton(self.fig.canvas.get_tk_widget().master, text="Reverse Y", variable=self.reverse_y).pack()
 
         # Add the median filter checkbox and kernel size entry
-        Checkbutton(self.canvas.master, text="Apply Median Filter", variable=self.apply_median_filter).pack()
+        Checkbutton(self.fig.canvas.get_tk_widget().master, text="Apply Median Filter", variable=self.apply_median_filter).pack()
 
-        Label(self.canvas.master, text="Kernel Size:").pack()
-        self.entry_kernel_size = Entry(self.canvas.master)
+        Label(self.fig.canvas.get_tk_widget().master, text="Kernel Size:").pack()
+        self.entry_kernel_size = Entry(self.fig.canvas.get_tk_widget().master)
         self.entry_kernel_size.insert(0, "3")  # Default kernel size
         self.entry_kernel_size.pack()
 
     def update_from_camera(self):
         """Acquire an image using pycromanager and update the shared image data."""
         current_image = {"data": None}
-        # try:
-        print("Snapping image...")
-        self.core.snap_image()
-        print("Image snapped with core {}", self.core)
-        tagged_image = self.core.get_tagged_image()
-        print(f"Tagged image acquired: {tagged_image.tags['Width']}x{tagged_image.tags['Height']}")
-        image_array = np.reshape(
-            tagged_image.pix,
-            newshape=[-1, tagged_image.tags["Height"], tagged_image.tags["Width"]],
-        )
-        # Update the shared image data (take the average across y-axis)
-        current_image["data"] = image_array.mean(axis=1).squeeze()
+        try:
+            self.core.snap_image()
+            tagged_image = self.core.get_tagged_image()
+            image_array = np.reshape(
+                tagged_image.pix,
+                newshape=[-1, tagged_image.tags["Height"], tagged_image.tags["Width"]],
+            )
+            # Update the shared image data (take the average across y-axis)
+            current_image["data"] = image_array.mean(axis=1).squeeze()
 
-        '''except Exception as e:
+        except Exception as e:
             print(f"Error acquiring image: {e}")
-            # print stack
-            e.with_traceback(e.__traceback__)
-            current_image["data"] = None'''
+            current_image["data"] = None
         return current_image
 
-    def run(self):
+    def update_frame(self, _):
         ci = self.update_from_camera()  # Update image data from the camera
         if ci["data"] is not None:
             y = ci["data"]
@@ -121,7 +121,6 @@ class LiveModeManager:
                     self.ax.set_ylim(y.min(), y.max())
 
         self.fig.canvas.draw()
-        self.canvas.after(50, self.run)
 
     def set_y_bounds(self):
         """Set the y-axis bounds based on user input."""
@@ -149,7 +148,6 @@ class LiveModeManager:
                 print("No ROI found in the current image.")
         else:
             print("No image found in the current display.")
-
 
 def main():
     live_mode_manager = LiveModeManager()
