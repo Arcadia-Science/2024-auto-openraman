@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pycromanager import Acquisition, multi_d_acquisition_events
 
-from autoopenraman.utils import write_spectrum
+from autoopenraman.utils import image_to_spectrum, write_spectrum
 
 
 class AcquisitionManager:
@@ -22,7 +22,7 @@ class AcquisitionManager:
 
     def img_process_fn(self, image, metadata):
         print("img_process_fn")
-        img_spectrum = image.mean(axis=1).squeeze()
+        img_spectrum = image_to_spectrum(image)
 
         x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
         self.spectrum_list.append(img_spectrum)

@@ -7,6 +7,8 @@ from matplotlib.animation import FuncAnimation
 from pycromanager import Core, Studio
 from scipy.signal import medfilt
 
+from autoopenraman.utils import image_to_spectrum
+
 # Ensure TKAgg is used for matplotlib
 matplotlib.use("TKAgg")
 
@@ -74,12 +76,12 @@ class LiveModeManager:
         try:
             self.core.snap_image()
             tagged_image = self.core.get_tagged_image()
-            image_array = np.reshape(
+            image_2d = np.reshape(
                 tagged_image.pix,
                 newshape=[-1, tagged_image.tags["Height"], tagged_image.tags["Width"]],
             )
             # Update the shared image data (take the average across y-axis)
-            current_image["data"] = image_array.mean(axis=1).squeeze()
+            current_image["data"] = image_to_spectrum(image_2d)
 
         except Exception as e:
             print(f"Error acquiring image: {e}")

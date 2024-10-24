@@ -4,7 +4,24 @@ from typing import List, Tuple
 
 import numpy as np
 
+def image_to_spectrum(img: np.ndarray) -> np.ndarray:
+    '''
+    Convert 2D image to spectrum, assuming that averaging is done on the y-axis (second).
+    
+    Parameters:
+    img (np.ndarray): A 2D image array
 
+    Returns:
+    np.ndarray: A 1D array representing the spectrum
+    '''
+
+    # remove singleton dimensions, if any
+    img = img.squeeze()
+    # if 3d array, throw error
+    if len(img.shape) != 2:
+        raise ValueError(f"The input image should be a 2D array. It is a {len(img.shape)}D array.")
+
+    return img.mean(axis=0)
 def write_spectrum(filename, x, y,
               header=["Pixel", "Intensity"]):
     """

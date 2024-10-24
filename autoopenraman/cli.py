@@ -57,6 +57,14 @@ class CLIparse:
     def plot(self):
         print("Plot mode")
 
+        parser = argparse.ArgumentParser(description="Plot spectrum of CSV file(s) using Plotly.")
+        parser.add_argument('-f', '--file_or_dir', type=str, help="Path to a CSV file or a directory of CSV files.", required=True)
+        args = parser.parse_args(sys.argv[2:])
+        file_or_dir = Path(args.file_or_dir)
+
+        from autoopenraman.plot import main as plot_main
+        plot_main(file_or_dir)
+
 def main():
     CLIparse()
 
