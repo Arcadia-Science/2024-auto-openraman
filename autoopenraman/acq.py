@@ -23,7 +23,7 @@ class AcquisitionManager:
         self.y = np.zeros_like(self.x)  # Placeholder for y data
         self.line, = self.ax.plot(self.x, self.y)
 
-    def img_process_fn(self, image, metadata):
+    def img_process_fn(self, image, metadata) -> None:
         print("img_process_fn")
         fname = metadata.get('PositionName', metadata.get('Position', 'DefaultPos'))
         img_spectrum = image_to_spectrum(image)
@@ -43,8 +43,7 @@ class AcquisitionManager:
             self.spectrum_list = []
 
         # Update the plot
-        
-        
+
         avg_spectrum = np.mean(self.spectrum_list, axis=0) if len(self.spectrum_list) > 0 else img_spectrum
         self.line.set_data(x, avg_spectrum)
         self.ax.set_xlim(0, len(img_spectrum))
@@ -52,8 +51,7 @@ class AcquisitionManager:
         self.ax.set_title(fname)
         self.f.canvas.draw()
         self.f.canvas.flush_events()
-        
-        # return image, metadata
+
 
     def mock_acquisition(self):
         '''Mocks the Acquisition engine'''

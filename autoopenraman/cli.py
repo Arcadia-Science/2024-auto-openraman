@@ -15,10 +15,11 @@ def cli():
 
 
 @cli.command()
-def live():
+@click.option('-d', '--debug', is_flag=True, help="Debug flag (used for testing): if set, will only run for a few seconds and quit")
+def live(debug):
     """Start live mode"""
     click.echo("Live mode")
-    live_main()
+    live_main(debug)
 
 
 @cli.command()

@@ -17,7 +17,6 @@ class LiveModeManager:
     def __init__(self):
         # Initialize the Micro-Manager core
         self.core = Core()
-        print(self.core)
         self.studio = Studio(convert_camel_case=False)
 
         # Initialize figure and plot
@@ -36,10 +35,22 @@ class LiveModeManager:
         # Set up the UI controls
         self.setup_controls()
 
-    def run(self):
+    def run(self, debug=False):
+
         # Initialize the animation
-        self.ani = FuncAnimation(self.fig, self.update_frame, interval=50, cache_frame_data=False)
-        plt.show()
+        self.ani = FuncAnimation(self.fig,
+                                 self.update_frame,
+                                 interval=50,
+                                 frames = 100 if debug else None,
+                                 cache_frame_data=False,
+                                 repeat=False)
+        if debug:
+            # for debugging/testing, show the plot for 10 seconds and exit successfully
+            plt.show(block=False)
+            plt.pause(10)
+            plt.close('all')
+        else:
+            plt.show()
 
     def setup_controls(self):
         # Add controls directly in the main window
@@ -88,7 +99,8 @@ class LiveModeManager:
             current_image["data"] = None
         return current_image
 
-    def update_frame(self, _):
+    def update_frame(self, frame):
+
         ci = self.update_from_camera()  # Update image data from the camera
         if ci["data"] is not None:
             y = ci["data"]
@@ -151,6 +163,6 @@ class LiveModeManager:
         else:
             print("No image found in the current display.")
 
-def main():
+def main(debug=False):
     live_mode_manager = LiveModeManager()
-    live_mode_manager.run()
+    live_mode_manager.run(debug)
