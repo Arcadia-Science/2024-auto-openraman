@@ -22,6 +22,8 @@ class AcquisitionManager:
         self.x = np.linspace(0, 10, 200)
         self.y = np.zeros_like(self.x)  # Placeholder for y data
         self.line, = self.ax.plot(self.x, self.y)
+        self.ax.set_xlabel("Pixels")
+        self.ax.set_ylabel("Intensity")
 
     def img_process_fn(self, image, metadata) -> None:
         print("img_process_fn")

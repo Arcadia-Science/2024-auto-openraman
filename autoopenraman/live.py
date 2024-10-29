@@ -24,6 +24,9 @@ class LiveModeManager:
         self.x = np.linspace(0, 10, 200)
         self.y = np.zeros_like(self.x)  # Placeholder for y data
         self.line, = self.ax.plot(self.x, self.y)
+        self.ax.set_title("Live Mode")
+        self.ax.set_xlabel("Pixels")
+        self.ax.set_ylabel("Intensity")
 
         # Variables to hold y-axis bounds and control options
         self.y_min, self.y_max = None, None
