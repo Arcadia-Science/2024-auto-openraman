@@ -3,6 +3,7 @@ channels:
   - defaults
 dependencies:
   - python=3.12
+  - click
   - numpy<2.0
   - pandas
   - conda-forge::matplotlib
