@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 import csv
 import json
 from pathlib import Path
@@ -7,7 +6,7 @@ import numpy as np
 
 
 def image_to_spectrum(img: np.ndarray) -> np.ndarray:
-    '''
+    """
     Convert 2D image to spectrum, assuming that averaging is done on the y-axis (second).
 
     Parameters:
@@ -15,7 +14,7 @@ def image_to_spectrum(img: np.ndarray) -> np.ndarray:
 
     Returns:
     np.ndarray: A 1D array representing the spectrum
-    '''
+    """
 
     # remove singleton dimensions, if any
     img = img.squeeze()
@@ -25,10 +24,8 @@ def image_to_spectrum(img: np.ndarray) -> np.ndarray:
 
     return img.mean(axis=0)
 
-def write_spectrum(file_path: Path,
-                   x: list,
-                   y: list,
-                   header=None) -> None:
+
+def write_spectrum(file_path: Path, x: list, y: list, header=None) -> None:
     """
     Write a 2-column CSV file of x and y
 
@@ -43,7 +40,7 @@ def write_spectrum(file_path: Path,
     if len(x) != len(y):
         raise ValueError("The length of x and y arrays must be the same.")
 
-    with open(file_path, mode='w', newline='') as file:
+    with open(file_path, mode="w", newline="") as file:
         writer = csv.writer(file)
         # Write the header
         writer.writerow(header)
@@ -51,13 +48,14 @@ def write_spectrum(file_path: Path,
         for pixel, intensity in zip(x, y):
             writer.writerow([pixel, intensity])
 
+
 def extract_stage_positions(file_path: Path) -> tuple[np.ndarray, list[str]]:
     # Load the JSON file
     with open(file_path) as file:
         data = json.load(file)
 
     # Extract the list of stage positions
-    stage_positions = data['map']['StagePositions']['array']
+    stage_positions = data["map"]["StagePositions"]["array"]
 
     # Extract (X, Y) coordinates and labels
     coordinates = []
@@ -65,14 +63,13 @@ def extract_stage_positions(file_path: Path) -> tuple[np.ndarray, list[str]]:
 
     for position in stage_positions:
         # Get the position array from DevicePositions
-        device_positions = position['DevicePositions']['array']
+        device_positions = position["DevicePositions"]["array"]
         for device in device_positions:
-            xy_position = device['Position_um']['array']
+            xy_position = device["Position_um"]["array"]
             coordinates.append(xy_position)
-            labels.append(position['Label']['scalar'])
+            labels.append(position["Label"]["scalar"])
 
     # Convert coordinates to a numpy array of shape (N, 2) and labels to a numpy array
     coordinates_array = np.array(coordinates)
 
     return coordinates_array, labels
-

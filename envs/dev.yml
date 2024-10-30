@@ -3,7 +3,10 @@ channels:
   - defaults
 dependencies:
   - python=3.12
+  - numpy<2.0
+  - pandas
   - conda-forge::matplotlib
   - scipy
   - plotly::plotly
-prefix: /Users/ilya_arcadia/miniconda3/envs/pycro
+  - pip
+  - pytest

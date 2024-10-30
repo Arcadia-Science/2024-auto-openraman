@@ -29,9 +29,10 @@ class LiveModeManager:
         autoscale (IntVar): Y autoscale
         reverse_x (IntVar): Reverse X-axis in case camera image is transposed
     """
+
     def __init__(self):
         """Initialize the LiveModeManager.
-        
+
         Args:
             None
         """
@@ -42,7 +43,7 @@ class LiveModeManager:
         self.fig, self.ax = plt.subplots()
         self.x = np.linspace(0, 10, 200)
         self.y = np.zeros_like(self.x)  # Placeholder for y data
-        self.line, = self.ax.plot(self.x, self.y)
+        (self.line,) = self.ax.plot(self.x, self.y)
         self.ax.set_title("Live Mode")
         self.ax.set_xlabel("Pixels")
         self.ax.set_ylabel("Intensity")
@@ -51,7 +52,7 @@ class LiveModeManager:
         self.y_min, self.y_max = None, None
         self.roi = None
         self.autoscale = IntVar(value=1)  # Default to autoscale on
-        self.reverse_x = IntVar(value=0)   # Default to no reverse
+        self.reverse_x = IntVar(value=0)  # Default to no reverse
         self.apply_median_filter = IntVar(value=0)  # Default to no median filter
 
         # Set up the UI controls
@@ -59,22 +60,24 @@ class LiveModeManager:
 
     def run(self, debug: bool = False) -> None:
         """Run the live mode animation.
-        
+
         Args:
             debug (bool): If True, run the animation for 10 seconds and exit. Used for testing.
             The default is False.
         """
-        self.ani = FuncAnimation(self.fig,
-                                 self.update_frame,
-                                 interval=50,
-                                 frames = 100 if debug else None,
-                                 cache_frame_data=False,
-                                 repeat=False)
+        self.ani = FuncAnimation(
+            self.fig,
+            self.update_frame,
+            interval=50,
+            frames=100 if debug else None,
+            cache_frame_data=False,
+            repeat=False,
+        )
         if debug:
             # for debugging/testing, show the plot for 10 seconds and exit successfully
             plt.show(block=False)
             plt.pause(10)
-            plt.close('all')
+            plt.close("all")
         else:
             plt.show()
 
@@ -88,15 +91,27 @@ class LiveModeManager:
         self.entry_max = Entry(self.fig.canvas.get_tk_widget().master)
         self.entry_max.pack()
 
-        Button(self.fig.canvas.get_tk_widget().master, text="Set Y Bounds", command=self.set_y_bounds).pack()
+        Button(
+            self.fig.canvas.get_tk_widget().master, text="Set Y Bounds", command=self.set_y_bounds
+        ).pack()
 
-        Checkbutton(self.fig.canvas.get_tk_widget().master, text="Y Autoscale", variable=self.autoscale).pack()
+        Checkbutton(
+            self.fig.canvas.get_tk_widget().master, text="Y Autoscale", variable=self.autoscale
+        ).pack()
 
-        Button(self.fig.canvas.get_tk_widget().master, text="Update ROI", command=self.update_roi).pack()
+        Button(
+            self.fig.canvas.get_tk_widget().master, text="Update ROI", command=self.update_roi
+        ).pack()
 
-        Checkbutton(self.fig.canvas.get_tk_widget().master, text="Reverse X", variable=self.reverse_x).pack()
+        Checkbutton(
+            self.fig.canvas.get_tk_widget().master, text="Reverse X", variable=self.reverse_x
+        ).pack()
 
-        Checkbutton(self.fig.canvas.get_tk_widget().master, text="Apply Median Filter", variable=self.apply_median_filter).pack()
+        Checkbutton(
+            self.fig.canvas.get_tk_widget().master,
+            text="Apply Median Filter",
+            variable=self.apply_median_filter,
+        ).pack()
 
         Label(self.fig.canvas.get_tk_widget().master, text="Kernel Size:").pack()
         self.entry_kernel_size = Entry(self.fig.canvas.get_tk_widget().master)
@@ -128,7 +143,7 @@ class LiveModeManager:
             y = ci["data"]
 
             if self.roi is not None:
-                y = y[self.roi['x']:self.roi['x']+self.roi['width']]
+                y = y[self.roi["x"] : self.roi["x"] + self.roi["width"]]
             # Reverse the y data if the checkbox is checked
             if self.reverse_x.get() == 1:
                 y = y[::-1]
@@ -188,6 +203,7 @@ class LiveModeManager:
                 print("No ROI found in the current image.")
         else:
             print("No image found in the current display.")
+
 
 def main(debug: bool = False) -> None:
     """Main function called by the CLI to run the LiveModeManager."""

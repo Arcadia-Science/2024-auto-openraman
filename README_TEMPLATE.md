@@ -82,7 +82,7 @@ make pre-commit
 
 ### Testing
 
-We use `pytest` for testing. The tests are found in the `[PACKAGE_NAME]/tests/` subpackage. To run the tests, use the following command:
+We use `pytest` for testing. The tests are found in the `autoopenraman/tests/` subpackage. To run the tests, use the following command:
 
 ```bash
 make test
