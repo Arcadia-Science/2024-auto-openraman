@@ -6,11 +6,18 @@ from plotly.subplots import make_subplots
 from pathlib import Path
 
 class SpectrumPlotter:
-    def __init__(self, input_path):
+    def __init__(self, input_path: Path):
+        """Initialize the SpectrumPlotter.
+
+        Uses Plotly to display spectra of a single CSV file or directory.
+        
+        Args:
+            input_path (Path): The path to the CSV file or directory containing CSV files.
+        """
         self.input_path = input_path
         self.csv_files = self._get_csv_files()
 
-    def _get_csv_files(self):
+    def _get_csv_files(self) -> list[Path]:
         """Retrieve CSV files from the input path."""
         if self.input_path.is_dir():
             return [file for file in self.input_path.glob('*.csv')]
@@ -20,8 +27,8 @@ class SpectrumPlotter:
             print("Invalid input. Please provide a CSV file or a directory containing CSV files.")
             return []
 
-    def run(self):
-        """Plot the CSV files using Plotly."""
+    def run(self) -> None:
+        """Plot the discovered CSV files using Plotly."""
         if not self.csv_files:
             print("No CSV files found.")
             return
@@ -40,9 +47,14 @@ class SpectrumPlotter:
             )
             fig.add_trace(trace)
         
-        fig.update_layout(title='Spectrum Plot', xaxis_title='X', yaxis_title='Intensity')
+        fig.update_layout(title='Spectrum Plot', xaxis_title=x_col, yaxis_title=y_col)
         fig.show()
 
-def main(file_or_dir):
+def main(file_or_dir: Path) -> None:
+    """Main function called by the CLI to run the SpectrumPlotter.
+    
+    Args:
+        file_or_dir (str): The path to the CSV file or directory containing CSV files.
+    """
     plotter = SpectrumPlotter(file_or_dir)
     plotter.run()

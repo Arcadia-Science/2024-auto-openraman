@@ -1,13 +1,15 @@
+from collections.abc import Iterable
 import csv
 import json
-from typing import List, Tuple
+from pathlib import Path
 
 import numpy as np
+
 
 def image_to_spectrum(img: np.ndarray) -> np.ndarray:
     '''
     Convert 2D image to spectrum, assuming that averaging is done on the y-axis (second).
-    
+
     Parameters:
     img (np.ndarray): A 2D image array
 
@@ -22,21 +24,26 @@ def image_to_spectrum(img: np.ndarray) -> np.ndarray:
         raise ValueError(f"The input image should be a 2D array. It is a {len(img.shape)}D array.")
 
     return img.mean(axis=0)
-def write_spectrum(filename, x, y,
-              header=["Pixel", "Intensity"]):
+
+def write_spectrum(file_path: Path,
+                   x: list,
+                   y: list,
+                   header=None) -> None:
     """
     Write a 2-column CSV file of x and y
 
     Parameters:
-    filename (str): The name of the file to write to.
+    file_path (str): The name of the file to write to.
     x (list): A list of pixel values.
     y (list): A list of intensity values corresponding to each pixel.
     """
     # Check if the lengths of the arrays match
+    if header is None:
+        header = ["Pixel", "Intensity"]
     if len(x) != len(y):
         raise ValueError("The length of x and y arrays must be the same.")
 
-    with open(filename, mode='w', newline='') as file:
+    with open(file_path, mode='w', newline='') as file:
         writer = csv.writer(file)
         # Write the header
         writer.writerow(header)
@@ -44,7 +51,7 @@ def write_spectrum(filename, x, y,
         for pixel, intensity in zip(x, y):
             writer.writerow([pixel, intensity])
 
-def extract_stage_positions(file_path) -> Tuple[np.ndarray, List[str]]:
+def extract_stage_positions(file_path: Path) -> tuple[np.ndarray, list[str]]:
     # Load the JSON file
     with open(file_path) as file:
         data = json.load(file)

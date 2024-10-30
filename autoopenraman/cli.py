@@ -10,14 +10,17 @@ from autoopenraman.utils import extract_stage_positions
 
 @click.group()
 def cli():
-    """AutoOpenRaman acquisition"""
+    """Aquisition and analysis with AutoOpenRaman.
+
+    Use this to view data without saving, acquire over time/positions, and plot saved data.
+     Make sure Micro-Manager is running before executing!"""
     pass
 
 
 @cli.command()
 @click.option('-d', '--debug', is_flag=True, help="Debug flag (used for testing): if set, will only run for a few seconds and quit")
 def live(debug):
-    """Start live mode"""
+    """Start live mode (GUI)"""
     click.echo("Live mode")
     live_main(debug)
 
@@ -27,7 +30,7 @@ def live(debug):
 @click.option('-n', '--n-averages', type=int, help="Number of averages for each acquisition", default=1)
 @click.option('-s', '--save-dir', type=click.Path(), help="Path to save the spectra", default='data/')
 def acq(pos_filepath, n_averages, save_dir):
-    """Start acquisition mode"""
+    """Start acquisition mode (No GUI). Set the parameters of acquisition"""
     click.echo("Acquisition mode")
 
     if pos_filepath:
@@ -38,6 +41,12 @@ def acq(pos_filepath, n_averages, save_dir):
 
     save_dir = Path(save_dir)
 
+    if not save_dir.is_dir():
+        print(f"Creating save directory: {save_dir}")
+        save_dir.mkdir(parents=True)
+    elif len(list(save_dir.glob('*.csv'))) > 0:
+        print(f"Warning: {save_dir} is not empty. Files may be overwritten.")
+
     acq_main(n_averages=n_averages,
              xy_positions=xy_positions,
              labels=labels,
@@ -47,7 +56,7 @@ def acq(pos_filepath, n_averages, save_dir):
 @cli.command()
 @click.option('-f', '--file-or-dir', type=click.Path(exists=True), help="Path to a CSV file or a directory of CSV files.", required=True)
 def plot(file_or_dir):
-    """Plot spectrum of CSV file(s)"""
+    """Plot spectrum of collected data (file or directory)"""
     click.echo("Plot mode")
     file_or_dir = Path(file_or_dir)
     plot_main(file_or_dir)

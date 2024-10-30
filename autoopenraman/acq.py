@@ -5,16 +5,27 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from pycromanager import Acquisition, multi_d_acquisition_events
-
+from collections.abc import Iterable
 from autoopenraman.utils import image_to_spectrum, write_spectrum
 
 
 class AcquisitionManager:
-    def __init__(self, n_averages, save_dir, xy_positions, labels):
+    def __init__(self, n_averages: int = 1,
+                 save_dir: Path = Path('data/'),
+                 xy_positions: Iterable | None = None,
+                 labels: Iterable[str]| None = None):
+        """Initialize the AcquisitionManager.
+        
+        Args:
+            n_averages (int): The number of spectra to average for each acquisition. The default is 1.
+            save_dir (Path): The directory to save the spectra. The default is 'data/'.
+            xy_positions (Iterable): The XY positions to acquire from. The default is None (single position).
+            labels (Iterable[str]): The labels for each position. The default is None (single position).
+        """
         self.n_averages = n_averages
         self.save_dir = Path(save_dir)
         self.xy_positions = xy_positions
-        self.n_positions = len(xy_positions) if xy_positions is not None else 1
+        self.n_positions = len(self.xy_positions) if xy_positions is not None else 1
         self.labels = labels
         self.spectrum_list = []
 
@@ -25,27 +36,35 @@ class AcquisitionManager:
         self.ax.set_xlabel("Pixels")
         self.ax.set_ylabel("Intensity")
 
-    def img_process_fn(self, image, metadata) -> None:
-        print("img_process_fn")
+    def process_image(self,
+                      image: np.ndarray,
+                      metadata: dict) -> None:
+        """Process the acquired image.
+
+        Args:
+            image (np.ndarray): The acquired image as a 2D numpy array.
+            metadata (dict): Image metadata from Micro-Manager.
+        """
+        print("process_image")
         fname = metadata.get('PositionName', metadata.get('Position', 'DefaultPos'))
         img_spectrum = image_to_spectrum(image)
 
         x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
         self.spectrum_list.append(img_spectrum)
 
+        # if this is the final spectrum in the average, save the average
         if len(self.spectrum_list) == self.n_averages:
             self.spectrum_list = np.array(self.spectrum_list)
             avg_spectrum = np.mean(self.spectrum_list, axis=0)
 
             write_spectrum(self.save_dir / (fname + '.csv'), x, avg_spectrum)
-            
+
             with open(self.save_dir / (fname + '.json'), 'w') as f:
                 json.dump(metadata, f)
 
             self.spectrum_list = []
 
         # Update the plot
-
         avg_spectrum = np.mean(self.spectrum_list, axis=0) if len(self.spectrum_list) > 0 else img_spectrum
         self.line.set_data(x, avg_spectrum)
         self.ax.set_xlim(0, len(img_spectrum))
@@ -54,32 +73,13 @@ class AcquisitionManager:
         self.f.canvas.draw()
         self.f.canvas.flush_events()
 
-
-    def mock_acquisition(self):
-        '''Mocks the Acquisition engine'''
-        print('Mock acquisition')
-        time.sleep(1)
-        self.img_process_fn(np.random.random((100, 100)), {'PositionName': 'Mock Position'})
-
-    def run_acquisition(self):
+    def run_acquisition(self) -> None:
+        """Run the acquisition."""
         start = time.time()
 
         plt.show(block=False)
         plt.pause(0.1)
 
-        # Mock acquisition (for testing purposes)
-        # for i in range(5):
-        #     self.mock_acquisition()
-        
-        '''
-        n_trials = 0
-        if self.n_positions > 1:
-            n_trials = self.n_positions * self.n_averages
-            mock_positions = [{'PositionName': f'Pos{i}'} for i in range(self.n_positions)]
-        else:
-            n_trials = self.n_averages
-            mock_positions = [{'PositionName': 'DefaultPos'}]
-        '''
         with Acquisition(show_display=False) as acq:
             events = multi_d_acquisition_events(
                 num_time_points=self.n_averages,
@@ -89,18 +89,27 @@ class AcquisitionManager:
                 order='pt')
             print(events)
 
-            for i,event in enumerate(events):
+            for _,event in enumerate(events):
                 future = acq.acquire(event)
 
                 image,metadata = future.await_image_saved(event['axes'], return_image = True, return_metadata=True)
-                self.img_process_fn(image, metadata)
+                self.process_image(image, metadata)
 
 
         print(f"Time elapsed: {time.time() - start:.2f} s")
 
-def main(n_averages, xy_positions, labels, save_dir):
+
+def main(n_averages: int = 1,
+         xy_positions: Iterable | None = None,
+         labels: Iterable[str]| None = None,
+         save_dir: Path = Path('data/')) -> None:
+    """Main function called by the CLI to run the AcquisitionManager.
+
+    Args:
+        n_averages (int): The number of spectra to average for each acquisition.
+        xy_positions (Iterable): The XY positions to acquire from.
+        labels (Iterable[str]): The labels for each position.
+        save_dir (Path): The directory to save the spectra.
+    """
     acquisition_manager = AcquisitionManager(n_averages, save_dir, xy_positions, labels)
     acquisition_manager.run_acquisition()
-
-if __name__ == '__main__':
-    pass

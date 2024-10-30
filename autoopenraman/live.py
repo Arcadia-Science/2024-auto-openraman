@@ -9,15 +9,34 @@ from scipy.signal import medfilt
 
 from autoopenraman.utils import image_to_spectrum
 
-# Ensure TKAgg is used for matplotlib
 matplotlib.use("TKAgg")
 
 
 class LiveModeManager:
+    """Live mode acquisition manager.
+
+    Attributes:
+        _core (Core): Pycro-Manager Core
+        _studio (Studio): Pycro-Manager Studio
+        fig (Figure): Matplotlib figure for real-time plotting
+        ax (Axes): Matplotlib axes for real-time plotting
+        x (np.ndarray): X-axis data
+        y (np.ndarray): Y-axis data
+        line (Line2D): Line object for the plot
+        y_min (float): Minimum value for y-axis
+        y_max (float): Maximum value for y-axis
+        roi (dict): ROI selection from Micro-Manager live view
+        autoscale (IntVar): Y autoscale
+        reverse_x (IntVar): Reverse X-axis in case camera image is transposed
+    """
     def __init__(self):
-        # Initialize the Micro-Manager core
-        self.core = Core()
-        self.studio = Studio(convert_camel_case=False)
+        """Initialize the LiveModeManager.
+        
+        Args:
+            None
+        """
+        self._core = Core()
+        self._studio = Studio(convert_camel_case=False)
 
         # Initialize figure and plot
         self.fig, self.ax = plt.subplots()
@@ -32,15 +51,19 @@ class LiveModeManager:
         self.y_min, self.y_max = None, None
         self.roi = None
         self.autoscale = IntVar(value=1)  # Default to autoscale on
-        self.reverse_y = IntVar(value=0)   # Default to no reverse
+        self.reverse_x = IntVar(value=0)   # Default to no reverse
         self.apply_median_filter = IntVar(value=0)  # Default to no median filter
 
         # Set up the UI controls
         self.setup_controls()
 
-    def run(self, debug=False):
-
-        # Initialize the animation
+    def run(self, debug: bool = False) -> None:
+        """Run the live mode animation.
+        
+        Args:
+            debug (bool): If True, run the animation for 10 seconds and exit. Used for testing.
+            The default is False.
+        """
         self.ani = FuncAnimation(self.fig,
                                  self.update_frame,
                                  interval=50,
@@ -55,8 +78,8 @@ class LiveModeManager:
         else:
             plt.show()
 
-    def setup_controls(self):
-        # Add controls directly in the main window
+    def setup_controls(self) -> None:
+        """Set up the UI controls."""
         Label(self.fig.canvas.get_tk_widget().master, text="Y Min:").pack()
         self.entry_min = Entry(self.fig.canvas.get_tk_widget().master)
         self.entry_min.pack()
@@ -67,16 +90,12 @@ class LiveModeManager:
 
         Button(self.fig.canvas.get_tk_widget().master, text="Set Y Bounds", command=self.set_y_bounds).pack()
 
-        # Add the autoscale checkbox
         Checkbutton(self.fig.canvas.get_tk_widget().master, text="Y Autoscale", variable=self.autoscale).pack()
 
-        # Add the use ROI button
         Button(self.fig.canvas.get_tk_widget().master, text="Update ROI", command=self.update_roi).pack()
 
-        # Add the reverse y checkbox
-        Checkbutton(self.fig.canvas.get_tk_widget().master, text="Reverse Y", variable=self.reverse_y).pack()
+        Checkbutton(self.fig.canvas.get_tk_widget().master, text="Reverse X", variable=self.reverse_x).pack()
 
-        # Add the median filter checkbox and kernel size entry
         Checkbutton(self.fig.canvas.get_tk_widget().master, text="Apply Median Filter", variable=self.apply_median_filter).pack()
 
         Label(self.fig.canvas.get_tk_widget().master, text="Kernel Size:").pack()
@@ -84,12 +103,12 @@ class LiveModeManager:
         self.entry_kernel_size.insert(0, "3")  # Default kernel size
         self.entry_kernel_size.pack()
 
-    def update_from_camera(self):
-        """Acquire an image using pycromanager and update the shared image data."""
+    def update_from_camera(self) -> dict:
+        """Acquire an image using pycromanager/Micro-Manager and update the shared image data."""
         current_image = {"data": None}
         try:
-            self.core.snap_image()
-            tagged_image = self.core.get_tagged_image()
+            self._core.snap_image()
+            tagged_image = self._core.get_tagged_image()
             image_2d = np.reshape(
                 tagged_image.pix,
                 newshape=[-1, tagged_image.tags["Height"], tagged_image.tags["Width"]],
@@ -102,8 +121,8 @@ class LiveModeManager:
             current_image["data"] = None
         return current_image
 
-    def update_frame(self, frame):
-
+    def update_frame(self, _) -> None:
+        """Update single frame of the animation."""
         ci = self.update_from_camera()  # Update image data from the camera
         if ci["data"] is not None:
             y = ci["data"]
@@ -111,7 +130,7 @@ class LiveModeManager:
             if self.roi is not None:
                 y = y[self.roi['x']:self.roi['x']+self.roi['width']]
             # Reverse the y data if the checkbox is checked
-            if self.reverse_y.get() == 1:
+            if self.reverse_x.get() == 1:
                 y = y[::-1]
 
             # Apply median filter if the checkbox is checked
@@ -139,8 +158,12 @@ class LiveModeManager:
 
         self.fig.canvas.draw()
 
-    def set_y_bounds(self):
-        """Set the y-axis bounds based on user input."""
+    def set_y_bounds(self) -> None:
+        """Set the y-axis bounds based on user input.
+
+        Raises:
+            ValueError: If the input is not a valid float.
+        """
         try:
             self.y_min = float(self.entry_min.get())
             self.y_max = float(self.entry_max.get())
@@ -148,9 +171,9 @@ class LiveModeManager:
         except ValueError:
             print("Invalid input for y bounds.")
 
-    def update_roi(self):
-        """Update the region of interest (ROI) based on the current image."""
-        snap_manager = self.studio.get_snap_live_manager()
+    def update_roi(self) -> None:
+        """Update the ROI based on the current selection in Micro-Manager."""
+        snap_manager = self._studio.get_snap_live_manager()
         cur_image = snap_manager.get_display().get_image_plus()
         if cur_image is not None:
             ij_roi = cur_image.get_roi()
@@ -166,6 +189,7 @@ class LiveModeManager:
         else:
             print("No image found in the current display.")
 
-def main(debug=False):
+def main(debug: bool = False) -> None:
+    """Main function called by the CLI to run the LiveModeManager."""
     live_mode_manager = LiveModeManager()
     live_mode_manager.run(debug)
