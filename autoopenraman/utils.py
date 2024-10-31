@@ -1,6 +1,7 @@
 import csv
 import json
 from pathlib import Path
+from typing import Iterable, Optional
 
 import numpy as np
 
@@ -25,14 +26,16 @@ def image_to_spectrum(img: np.ndarray) -> np.ndarray:
     return img.mean(axis=0)
 
 
-def write_spectrum(file_path: Path, x: list, y: list, header=None) -> None:
+def write_spectrum(
+    file_path: Path, x: Iterable[float], y: Iterable[float], header: Optional[list] = None
+) -> None:
     """
     Write a 2-column CSV file of x and y
 
     Parameters:
     file_path (str): The name of the file to write to.
-    x (list): A list of pixel values.
-    y (list): A list of intensity values corresponding to each pixel.
+    x (Iterable): An Iterable of pixel values.
+    y (Iterable): An Iterable of intensity values corresponding to each pixel.
     """
     # Check if the lengths of the arrays match
     if header is None:

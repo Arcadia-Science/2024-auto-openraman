@@ -1,7 +1,7 @@
 import json
 import time
-from collections.abc import Iterable
 from pathlib import Path
+from typing import Iterable, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,8 +15,8 @@ class AcquisitionManager:
         self,
         n_averages: int = 1,
         save_dir: Path = Path("data/"),
-        xy_positions: Iterable | None = None,
-        labels: Iterable[str] | None = None,
+        xy_positions: Optional[Iterable[tuple[float, float]]] = None,
+        labels: Optional[Iterable[str]] = None,
     ):
         """Initialize the AcquisitionManager.
 
@@ -32,7 +32,9 @@ class AcquisitionManager:
         self.n_averages = n_averages
         self.save_dir = Path(save_dir)
         self.xy_positions = xy_positions
-        self.n_positions = len(self.xy_positions) if xy_positions is not None else 1
+
+        if xy_positions is not None:
+            self.n_positions = len(self.xy_positions)
         self.labels = labels
         self.spectrum_list = []
 
