@@ -39,7 +39,16 @@ name = "pypi_test"
 url = "https://test.pypi.org/legacy/"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
+python = ">=3.10,<3.13"
+matplotlib = "^3.9.2"
+numpy = "^2.1.2"
+pycromanager = "^1.0.0"
+click = "^8.1.7"
+scipy = "^1.14.1"
+pandas = "^2.2.3"
+plotly = "^5.24.1"
+pathlib = "^1.0.1"
+tk = "^0.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "3.5.0"
