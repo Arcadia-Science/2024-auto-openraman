@@ -11,10 +11,10 @@ def image_to_spectrum(img: np.ndarray) -> np.ndarray:
     Convert 2D image to spectrum, assuming that averaging is done on the y-axis (second).
 
     Parameters:
-    img (np.ndarray): A 2D image array
+        img (np.ndarray): A 2D image array
 
     Returns:
-    np.ndarray: A 1D array representing the spectrum
+        np.ndarray: A 1D array representing the spectrum
     """
 
     # remove singleton dimensions, if any
@@ -33,9 +33,10 @@ def write_spectrum(
     Write a 2-column CSV file of x and y
 
     Parameters:
-    file_path (str): The name of the file to write to.
-    x (Iterable): An Iterable of pixel values.
-    y (Iterable): An Iterable of intensity values corresponding to each pixel.
+        file_path (str): The name of the file to write to.
+        x (Iterable): An Iterable of pixel values.
+        y (Iterable): An Iterable of intensity values corresponding to each pixel.
+        header (list, optional): A list of header values. Defaults to `["Pixel", "Intensity"]`.
     """
     # Check if the lengths of the arrays match
     if header is None:
