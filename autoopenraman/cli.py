@@ -2,9 +2,9 @@ from pathlib import Path
 
 import click
 
-from autoopenraman.acq import main as acq_main
-from autoopenraman.live import main as live_main
-from autoopenraman.plot import main as plot_main
+from autoopenraman.acq import AcquisitionManager
+from autoopenraman.live import LiveModeManager
+from autoopenraman.plot import SpectrumPlotter
 from autoopenraman.utils import extract_stage_positions
 
 
@@ -27,7 +27,7 @@ def cli():
 def live(debug):
     """Start live mode (GUI)"""
     click.echo("Live mode")
-    live_main(debug)
+    LiveModeManager().run(debug)
 
 
 @cli.command()
@@ -62,7 +62,7 @@ def acq(pos_filepath, n_averages, save_dir):
     elif len(list(save_dir.glob("*.csv"))) > 0:
         print(f"Warning: {save_dir} is not empty. Files may be overwritten.")
 
-    acq_main(n_averages=n_averages, xy_positions=xy_positions, labels=labels, save_dir=save_dir)
+    AcquisitionManager(n_averages, save_dir, xy_positions, labels).run_acquisition()
 
 
 @cli.command()
@@ -76,8 +76,7 @@ def acq(pos_filepath, n_averages, save_dir):
 def plot(file_or_dir):
     """Plot spectrum of collected data (file or directory)"""
     click.echo("Plot mode")
-    file_or_dir = Path(file_or_dir)
-    plot_main(file_or_dir)
+    SpectrumPlotter(file_or_dir).run()
 
 
 def main():

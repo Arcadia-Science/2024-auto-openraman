@@ -203,9 +203,3 @@ class LiveModeManager:
                 print("No ROI found in the current image.")
         else:
             print("No image found in the current display.")
-
-
-def main(debug: bool = False) -> None:
-    """Main function called by the CLI to run the LiveModeManager."""
-    live_mode_manager = LiveModeManager()
-    live_mode_manager.run(debug)

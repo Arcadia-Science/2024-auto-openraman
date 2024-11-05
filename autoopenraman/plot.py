@@ -47,13 +47,3 @@ class SpectrumPlotter:
 
         fig.update_layout(title="Spectrum Plot", xaxis_title=x_col, yaxis_title=y_col)
         fig.show()
-
-
-def main(file_or_dir: Path) -> None:
-    """Main function called by the CLI to run the SpectrumPlotter.
-
-    Args:
-        file_or_dir (str): The path to the CSV file or directory containing CSV files.
-    """
-    plotter = SpectrumPlotter(file_or_dir)
-    plotter.run()

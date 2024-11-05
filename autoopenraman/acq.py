@@ -103,21 +103,3 @@ class AcquisitionManager:
                 self.process_image(image, metadata)
 
         print(f"Time elapsed: {time.time() - start:.2f} s")
-
-
-def main(
-    n_averages: int = 1,
-    xy_positions: Iterable | None = None,
-    labels: Iterable[str] | None = None,
-    save_dir: Path = Path("data/"),
-) -> None:
-    """Main function called by the CLI to run the AcquisitionManager.
-
-    Args:
-        n_averages (int): The number of spectra to average for each acquisition.
-        xy_positions (Iterable): The XY positions to acquire from.
-        labels (Iterable[str]): The labels for each position.
-        save_dir (Path): The directory to save the spectra.
-    """
-    acquisition_manager = AcquisitionManager(n_averages, save_dir, xy_positions, labels)
-    acquisition_manager.run_acquisition()
