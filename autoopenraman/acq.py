@@ -39,8 +39,7 @@ class AcquisitionManager:
         self.spectrum_list = []
 
         self.f, self.ax = plt.subplots()
-        self.x = np.linspace(0, 10, 200)
-        self.y = np.zeros_like(self.x)  # Placeholder for y data
+        self.x, self.y = [0], [0]  # dummy values to initialize the plot
         (self.line,) = self.ax.plot(self.x, self.y)
         self.ax.set_xlabel("Pixels")
         self.ax.set_ylabel("Intensity")
@@ -59,35 +58,31 @@ class AcquisitionManager:
         x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
         self.spectrum_list.append(img_spectrum)
 
-        # if this is the final spectrum in the average, save the average
-        if len(self.spectrum_list) == self.n_averages:
-            self.spectrum_list = np.array(self.spectrum_list)
-            avg_spectrum = np.mean(self.spectrum_list, axis=0)
+        # Update the plot
+        running_avg = (
+            np.mean(self.spectrum_list, axis=0) if len(self.spectrum_list) > 0 else img_spectrum
+        )
+        self.line.set_data(x, running_avg)
+        self.ax.set_xlim(0, len(img_spectrum))
+        self.ax.set_ylim(np.min(running_avg), np.max(running_avg))
+        self.ax.set_title(fname)
+        self.f.canvas.draw()
+        self.f.canvas.flush_events()
 
-            write_spectrum(self.save_dir / (fname + ".csv"), x, avg_spectrum)
+        # if this is the final spectrum in the average, save the average spectrum
+        if len(self.spectrum_list) == self.n_averages:
+            write_spectrum(self.save_dir / (fname + ".csv"), x, running_avg)
 
             with open(self.save_dir / (fname + ".json"), "w") as f:
                 json.dump(metadata, f)
 
             self.spectrum_list = []
 
-        # Update the plot
-        avg_spectrum = (
-            np.mean(self.spectrum_list, axis=0) if len(self.spectrum_list) > 0 else img_spectrum
-        )
-        self.line.set_data(x, avg_spectrum)
-        self.ax.set_xlim(0, len(img_spectrum))
-        self.ax.set_ylim(np.min(avg_spectrum), np.max(avg_spectrum))
-        self.ax.set_title(fname)
-        self.f.canvas.draw()
-        self.f.canvas.flush_events()
-
     def run_acquisition(self) -> None:
         """Run the acquisition."""
         start = time.time()
 
         plt.show(block=False)
-        plt.pause(0.1)
 
         with Acquisition(show_display=False) as acq:
             events = multi_d_acquisition_events(
