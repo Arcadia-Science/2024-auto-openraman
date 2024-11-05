@@ -18,9 +18,9 @@ sys.path.insert(0, os.path.abspath("../"))
 
 # -- Project information -----------------------------------------------------
 
-project = "[PACKAGE-NAME]"
+project = "AutoOpenRaman"
 # copyright = "2024, Arcadia Science"
-author = "[FIRST] [LAST]"
+author = "Ilya Kolb"
 
 # -- General configuration ---------------------------------------------------
 
@@ -107,8 +107,8 @@ autodoc_class_signature = "mixed"
 autoclass_content = "class"
 
 autoapi_type = "python"
-autoapi_dirs = ["../[PACKAGE_NAME]"]
-autoapi_options = []
+autoapi_dirs = ["../autoopenraman"]
+autoapi_options = ["undoc-members"]
 autoapi_keep_files = True
 
 autoapi_ignore = [

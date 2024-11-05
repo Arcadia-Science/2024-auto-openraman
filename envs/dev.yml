@@ -1,8 +1,7 @@
-name: pycro
 channels:
-  - defaults
+  - conda-forge
 dependencies:
-  - python=3.12
-  - conda-forge::matplotlib
-  - scipy
-prefix: /Users/ilya_arcadia/miniconda3/envs/pycro
+  - pip=24.2
+  - python=3.12.7
+  - pip:
+      - poetry==1.8.3

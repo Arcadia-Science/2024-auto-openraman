@@ -44,7 +44,7 @@ jobs:
       #     path: .venv
       #     key: pydeps-${{ hashFiles('**/poetry.lock') }}
       - name: Install dependencies
-        run: poetry install --no-interaction --no-root --only dev
+        run: poetry install --no-interaction --no-root
         # if: steps.cache-poetry-deps.outputs.cache-hit != 'true'
 
       - name: Run linting

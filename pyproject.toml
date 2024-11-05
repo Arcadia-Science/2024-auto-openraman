@@ -13,18 +13,21 @@ style = "pep440"
 dirty = true
 
 [tool.poetry]
-name = "[PACKAGE_NAME]"
+name = "autoopenraman"
 # This version is a placeholder. It will be updated at build time by poetry-dynamic-versioning
 # from the latest git tag.
-version = "0.0.0"
-description = "[DESCRIPTION OF THE PACKAGE]"
-authors = ["[FIRST] [LAST] <[EMAIL]>"]
+version = "0.0.1"
+description = "Automation of OpenRaman"
+authors = ["Ilya Kolb <ilya.kolb.0@gmail.com>"]
 readme = "README.md"
 license = "MIT"
-packages = [{ include = "[PACKAGE_NAME]" }]
-homepage = "https://github.com/Arcadia-Science/[PACKAGE-NAME]"
-repository = "https://github.com/Arcadia-Science/[PACKAGE-NAME]"
-documentation = "https://github.com/Arcadia-Science/[PACKAGE-NAME]/blob/main/README.md"
+packages = [{ include = "autoopenraman" }]
+homepage = "https://github.com/Arcadia-Science/"
+repository = "https://github.com/Arcadia-Science/2024-auto-openraman"
+documentation = "https://github.com/Arcadia-Science/2024-auto-openraman/blob/main/README.md"
+
+[tool.poetry.scripts]
+autoopenraman = "autoopenraman.cli:main"
 
 [[tool.poetry.source]]
 name = "pypi"
@@ -36,7 +39,16 @@ name = "pypi_test"
 url = "https://test.pypi.org/legacy/"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
+python = ">=3.10,<3.13"
+matplotlib = "^3.9.2"
+numpy = "1.26.4"
+click = "^8.1.7"
+scipy = "^1.14.1"
+pandas = "^2.2.3"
+plotly = "^5.24.1"
+pathlib = "^1.0.1"
+tk = "^0.1.0"
+pycromanager = {git = "https://github.com/micro-manager/pycro-manager.git"}
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "3.5.0"
@@ -102,4 +114,8 @@ exclude = ["./.venv", "./dist"]
 
 # Pyright reports a lot of unknown-member errors for some packages.
 # If this is a problem, set this to `false`.
-reportUnknownMemberType = true
+reportUnknownMemberType = false
+reportAttributeAccessIssue = "warning"
+reportArgumentType = "warning"
+reportAbstractUsage = "warning"
+reportGeneralTypeIssues = "warning"
