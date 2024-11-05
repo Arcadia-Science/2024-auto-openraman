@@ -1,13 +1,7 @@
-name: autoopenraman-dev
 channels:
-  - defaults
+  - conda-forge
 dependencies:
-  - python=3.12
-  - click
-  - numpy<2.0
-  - pandas
-  - conda-forge::matplotlib
-  - scipy
-  - plotly::plotly
-  - pip
-  - pytest
+  - pip=24.2
+  - python=3.12.7
+  - pip:
+      - poetry==1.8.3
