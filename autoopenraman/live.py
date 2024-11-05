@@ -118,9 +118,12 @@ class LiveModeManager:
         self.entry_kernel_size.insert(0, "3")  # Default kernel size
         self.entry_kernel_size.pack()
 
-    def update_from_camera(self) -> dict:
-        """Acquire an image using pycromanager/Micro-Manager and update the shared image data."""
-        current_image = {"data": None}
+    def get_spectrum_from_camera(self) -> np.ndarray:
+        """Acquire an image from the camera and convert to spectrum by averaging along x axis.
+
+        Returns:
+            np.ndarray: The acquired spectrum.
+        """
         try:
             self._core.snap_image()
             tagged_image = self._core.get_tagged_image()
@@ -128,48 +131,45 @@ class LiveModeManager:
                 tagged_image.pix,
                 newshape=[-1, tagged_image.tags["Height"], tagged_image.tags["Width"]],
             )
-            # Update the shared image data (take the average across y-axis)
-            current_image["data"] = image_to_spectrum(image_2d)
-
         except Exception as e:
-            print(f"Error acquiring image: {e}")
-            current_image["data"] = None
-        return current_image
+            print("Error acquiring image!")
+            raise e
+
+        # Convert the 2D image to a spectrum
+        return image_to_spectrum(image_2d)
 
     def update_frame(self, _) -> None:
         """Update single frame of the animation."""
-        ci = self.update_from_camera()  # Update image data from the camera
-        if ci["data"] is not None:
-            y = ci["data"]
+        _spectrum = self.get_spectrum_from_camera()  # Update image data from the camera
 
-            if self.roi is not None:
-                y = y[self.roi["x"] : self.roi["x"] + self.roi["width"]]
-            # Reverse the y data if the checkbox is checked
-            if self.reverse_x.get() == 1:
-                y = y[::-1]
+        if self.roi is not None:
+            _spectrum = _spectrum[self.roi["x"] : self.roi["x"] + self.roi["width"]]
+        # Reverse the y data if the checkbox is checked
+        if self.reverse_x.get() == 1:
+            _spectrum = _spectrum[::-1]
 
-            # Apply median filter if the checkbox is checked
-            if self.apply_median_filter.get() == 1:
-                try:
-                    kernel_size = int(self.entry_kernel_size.get())
-                    y = medfilt(y, kernel_size=kernel_size)
-                except ValueError:
-                    print("Invalid kernel size. Please enter a valid integer.")
-                except Exception as e:
-                    print(f"Error applying median filter: {e}")
+        # Apply median filter if the checkbox is checked
+        if self.apply_median_filter.get() == 1:
+            try:
+                kernel_size = int(self.entry_kernel_size.get())
+                _spectrum = medfilt(_spectrum, kernel_size=kernel_size)
+            except ValueError:
+                print("Invalid kernel size. Please enter a valid integer.")
+            except Exception as e:
+                print(f"Error applying median filter: {e}")
 
-            x_data = np.linspace(0, len(y), len(y))
-            self.line.set_data(x_data, y)
-            self.ax.set_xlim(0, len(y))
+        x_data = np.linspace(0, len(_spectrum), len(_spectrum))
+        self.line.set_data(x_data, _spectrum)
+        self.ax.set_xlim(0, len(_spectrum))
 
-            # Check if autoscale is enabled
-            if self.autoscale.get() == 1:
-                self.ax.set_ylim(y.min(), y.max())
+        # Check if autoscale is enabled
+        if self.autoscale.get() == 1:
+            self.ax.set_ylim(_spectrum.min(), _spectrum.max())
+        else:
+            if self.y_min is not None and self.y_max is not None:
+                self.ax.set_ylim(self.y_min, self.y_max)
             else:
-                if self.y_min is not None and self.y_max is not None:
-                    self.ax.set_ylim(self.y_min, self.y_max)
-                else:
-                    self.ax.set_ylim(y.min(), y.max())
+                self.ax.set_ylim(_spectrum.min(), _spectrum.max())
 
         self.fig.canvas.draw()
 
