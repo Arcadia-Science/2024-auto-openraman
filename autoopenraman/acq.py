@@ -1,13 +1,12 @@
 import json
 import time
 from pathlib import Path
-from typing import Iterable, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 from pycromanager import Acquisition, multi_d_acquisition_events
 
-from autoopenraman.utils import image_to_spectrum, write_spectrum
+from autoopenraman.utils import extract_stage_positions, image_to_spectrum, write_spectrum
 
 
 class AcquisitionManager:
@@ -15,8 +14,7 @@ class AcquisitionManager:
         self,
         n_averages: int = 1,
         save_dir: Path = Path("data/"),
-        xy_positions: Optional[Iterable[tuple[float, float]]] = None,
-        labels: Optional[Iterable[str]] = None,
+        position_file: Path | None = None,
     ):
         """Initialize the AcquisitionManager.
 
@@ -24,18 +22,19 @@ class AcquisitionManager:
             n_averages (int): The number of spectra to average for each acquisition.
                 The default is 1.
             save_dir (Path): The directory to save the spectra. The default is 'data/'.
-            xy_positions (Iterable): The XY positions to acquire from.
-                The default is None (single position).
-            labels (Iterable[str]): The labels for each position.
-                The default is None (single position).
+            position_file (Path | None): The path to the JSON file containing the stage positions.
+            If none, the stage positions are not used. The default is None.
         """
         self.n_averages = n_averages
         self.save_dir = Path(save_dir)
-        self.xy_positions = xy_positions
+        self.position_file = position_file
 
-        if xy_positions is not None:
-            self.n_positions = len(self.xy_positions)
-        self.labels = labels
+        if position_file is not None:
+            self.xy_positions, self.labels = extract_stage_positions(position_file)
+        else:
+            self.xy_positions = None
+            self.labels = None
+
         self.spectrum_list = []
 
         self.f, self.ax = plt.subplots()
@@ -43,6 +42,22 @@ class AcquisitionManager:
         (self.line,) = self.ax.plot(self.x, self.y)
         self.ax.set_xlabel("Pixels")
         self.ax.set_ylabel("Intensity")
+
+    def _save_metadata(self, _filename: str, _metadata: dict) -> None:
+        """Save the metadata to a JSON file.
+
+        Args:
+            _filename (str): Metadata filename.
+            metadata (dict): The metadata to save.
+        """
+
+        # add the acquisition parameters to the metadata
+        _metadata["Number of averages"] = self.n_averages
+        _metadata["Stage position file"] = self.position_file
+        _metadata["DateTime"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+        with open(self.save_dir / (_filename + ".json"), "w") as f:
+            json.dump(_metadata, f)
 
     def process_image(self, image: np.ndarray, metadata: dict) -> None:
         """Process the acquired image.
@@ -69,12 +84,11 @@ class AcquisitionManager:
         self.f.canvas.draw()
         self.f.canvas.flush_events()
 
-        # if this is the final spectrum in the average, save the average spectrum
+        # if this is the final spectrum in the average, save average spectrum and metadata
         if len(self.spectrum_list) == self.n_averages:
             write_spectrum(self.save_dir / (fname + ".csv"), x, running_avg)
 
-            with open(self.save_dir / (fname + ".json"), "w") as f:
-                json.dump(metadata, f)
+            self._save_metadata(fname, metadata)
 
             self.spectrum_list = []
 

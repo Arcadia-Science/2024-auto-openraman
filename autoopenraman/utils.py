@@ -71,8 +71,7 @@ def extract_stage_positions(file_path: Path) -> tuple[np.ndarray, list[str]]:
         FileNotFoundError: If the stage position file is not found
     """
 
-    if not file_path.is_file():
-        raise FileNotFoundError(f"Stage position file not found: {file_path}")
+    print("Extracting stage positions from {position_file}")
     # Load the JSON file
     with open(file_path) as file:
         data = json.load(file)
