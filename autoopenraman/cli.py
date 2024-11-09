@@ -43,7 +43,14 @@ def live(debug):
 @click.option(
     "-s", "--save-dir", type=click.Path(), help="Path to save the spectra", default="data/"
 )
-def acq(position_file, n_averages, save_dir):
+@click.option(
+    "--shutter",
+    type=str,
+    help="Name of shutter in Micro-Manager to use if shutter should\
+        be closed between timeseries",
+    default=None,
+)
+def acq(position_file, n_averages, save_dir, shutter):
     """Start acquisition mode (No GUI). Set the parameters of acquisition"""
     click.echo("Acquisition mode")
 
@@ -58,7 +65,7 @@ def acq(position_file, n_averages, save_dir):
     if position_file is not None:
         if not Path(position_file).is_file():
             raise FileNotFoundError(f"Stage position file not found: {position_file}")
-    AcquisitionManager(n_averages, save_dir, position_file).run_acquisition()
+    AcquisitionManager(n_averages, save_dir, position_file, shutter).run_acquisition()
 
 
 @cli.command()
