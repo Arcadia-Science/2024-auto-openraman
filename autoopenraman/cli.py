@@ -60,7 +60,12 @@ def acq(position_file, n_averages, save_dir, shutter):
         print(f"Creating save directory: {save_dir}")
         save_dir.mkdir(parents=True)
     elif len(list(save_dir.glob("*.csv"))) > 0:
-        print(f"Warning: {save_dir} is not empty. Files may be overwritten.")
+        if not click.confirm(
+            f"Warning: {save_dir} is not empty. Are you sure you want to add files/overwrite?",
+            default=False,
+        ):
+            click.echo("Aborting acquisition...")
+            return
 
     if position_file is not None:
         if not Path(position_file).is_file():
