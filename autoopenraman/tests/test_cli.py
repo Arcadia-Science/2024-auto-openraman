@@ -81,9 +81,79 @@ def test_acq_command_with_position_file(runner):
         _n_positions = 5
         position_file = Path("positions.json")
         _create_mock_position_file(position_file, n_positions=_n_positions)
-        result = runner.invoke(cli, ["acq", "--position_file", str(position_file)])
+        result = runner.invoke(
+            cli, ["acq", "--n-averages", "5", "--position_file", str(position_file)]
+        )
         assert result.exit_code == 0
         assert "Acquisition mode" in result.output
+
+        # Verify the AcquisitionManager behavior
+        save_dir = Path("data/")
+        assert save_dir.is_dir()
+
+        n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
+        assert n_jsons == _n_positions
+    assert n_csvs == _n_positions
+
+
+def test_acq_command_with_shutter(runner):
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["acq", "--shutter", "ShutterName", "--save-dir", "test_data"])
+        assert result.exit_code == 0
+        assert "Acquisition mode" in result.output
+        assert "Shutter open" in result.output
+        assert "Shutter closed" in result.output
+
+        # Verify the output directory and files
+        save_dir = Path("test_data")
+        assert save_dir.is_dir()
+
+        n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
+        assert n_jsons == 1
+        assert n_csvs == 1
+
+
+def test_acq_command_with_badshuttername(runner):
+    with runner.isolated_filesystem():
+        _n_positions = 3
+        position_file = Path("positions.json")
+        _create_mock_position_file(position_file, n_positions=_n_positions)
+        result = runner.invoke(
+            cli,
+            [
+                "acq",
+                "--n-averages",
+                "5",
+                "--position_file",
+                str(position_file),
+                "--shutter",
+                "Bad shutter",
+            ],
+        )
+        assert result.exit_code == 1
+
+
+def test_acq_command_with_shutter_and_position_file(runner):
+    with runner.isolated_filesystem():
+        _n_positions = 3
+        position_file = Path("positions.json")
+        _create_mock_position_file(position_file, n_positions=_n_positions)
+        result = runner.invoke(
+            cli,
+            [
+                "acq",
+                "--n-averages",
+                "5",
+                "--position_file",
+                str(position_file),
+                "--shutter",
+                "White Light Shutter",
+            ],
+        )
+        assert result.exit_code == 0
+        assert "Acquisition mode" in result.output
+        assert "Shutter open" in result.output
+        assert "Shutter closed" in result.output
 
         # Verify the AcquisitionManager behavior
         save_dir = Path("data/")
