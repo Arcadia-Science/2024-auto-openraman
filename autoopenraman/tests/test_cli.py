@@ -98,7 +98,9 @@ def test_acq_command_with_position_file(runner):
 
 def test_acq_command_with_shutter(runner):
     with runner.isolated_filesystem():
-        result = runner.invoke(cli, ["acq", "--shutter", "ShutterName", "--save-dir", "test_data"])
+        result = runner.invoke(
+            cli, ["acq", "--shutter", "White Light Shutter", "--save-dir", "test_data"]
+        )
         assert result.exit_code == 0
         assert "Acquisition mode" in result.output
         assert "Shutter open" in result.output
