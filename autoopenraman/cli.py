@@ -2,6 +2,7 @@ from pathlib import Path
 
 import click
 
+from autoopenraman import profile
 from autoopenraman.acq import AcquisitionManager
 from autoopenraman.live import LiveModeManager
 from autoopenraman.plot import SpectrumPlotter
@@ -41,27 +42,30 @@ def live(debug):
     "-n", "--n-averages", type=int, help="Number of averages for each acquisition", default=1
 )
 @click.option(
-    "-s", "--save-dir", type=click.Path(), help="Path to save the spectra", default="data/"
+    "-d",
+    "--exp-dir",
+    type=click.Path(),
+    help="Folder where spectra will be saved\
+        (parent path defined in profile)",
+    default="data/",
 )
 @click.option(
     "--shutter",
-    type=str,
-    help="Name of shutter in Micro-Manager to use if shutter should\
-        be closed between timeseries",
-    default=None,
+    is_flag=True,
+    help="If set, will close the shutter between acquisitions (if available)",
 )
-def acq(position_file, n_averages, save_dir, shutter):
+def acq(position_file, n_averages, exp_dir, shutter):
     """Start acquisition mode (No GUI). Set the parameters of acquisition"""
     click.echo("Acquisition mode")
 
-    save_dir = Path(save_dir)
+    exp_path = Path(profile.save_dir) / exp_dir
 
-    if not save_dir.is_dir():
-        print(f"Creating save directory: {save_dir}")
-        save_dir.mkdir(parents=True)
-    elif len(list(save_dir.glob("*.csv"))) > 0:
+    if not exp_path.is_dir():
+        print(f"Creating save directory: {exp_path}")
+        exp_path.mkdir(parents=True)
+    elif len(list(exp_path.glob("*.csv"))) > 0:
         if not click.confirm(
-            f"Warning: {save_dir} is not empty. Are you sure you want to add files/overwrite?",
+            f"Warning: {exp_path} is not empty. Are you sure you want to add files/overwrite?",
             default=False,
         ):
             click.echo("Aborting acquisition...")
@@ -70,7 +74,7 @@ def acq(position_file, n_averages, save_dir, shutter):
     if position_file is not None:
         if not Path(position_file).is_file():
             raise FileNotFoundError(f"Stage position file not found: {position_file}")
-    AcquisitionManager(n_averages, save_dir, position_file, shutter).run_acquisition()
+    AcquisitionManager(n_averages, exp_path, position_file, shutter).run_acquisition()
 
 
 @cli.command()

@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pycromanager import Acquisition, Core, multi_d_acquisition_events
 
+from autoopenraman import profile
 from autoopenraman.utils import extract_stage_positions, image_to_spectrum, write_spectrum
 
 
@@ -13,24 +14,24 @@ class AcquisitionManager:
     def __init__(
         self,
         n_averages: int = 1,
-        save_dir: Path = Path("data/"),
+        exp_path: Path = Path("data/"),
         position_file: Path | None = None,
-        shutter: str | None = None,
+        shutter: bool = False,
     ):
         """Initialize the AcquisitionManager.
 
         Args:
             n_averages (int): The number of spectra to average for each acquisition.
                 The default is 1.
-            save_dir (Path): The directory to save the spectra. The default is 'data/'.
+            exp_path (Path): The full path to save the spectra. The default is 'data/'.
             position_file (Path | None): The path to the JSON file containing the stage positions.
                 If none, the stage positions are not used. The default is None.
-            shutter (str | None): If defined, find the shutter device in MM and close it betwen
-                positions. The default is None (use auto-shutter).
+            shutter (bool): If True, find the shutter device in MM (defined in profile)
+                and close it between positions. The default is False (use auto-shutter).
         """
 
         self.n_averages = n_averages
-        self.save_dir = Path(save_dir)
+        self.exp_path = Path(exp_path)
         self.position_file = position_file
         self.shutter = shutter
 
@@ -48,10 +49,11 @@ class AcquisitionManager:
         self.ax.set_xlabel("Pixels")
         self.ax.set_ylabel("Intensity")
 
-        if self.shutter is not None:
+        if self.shutter:
             self.core = Core()
-            if not self.core.get_shutter_device().lower() == shutter.lower():
-                raise ValueError(f"Shutter device {shutter} not active in Micro-Manager")
+            shutter_name = profile.shutter_name
+            if not self.core.get_shutter_device().lower() == shutter_name:
+                raise ValueError(f"Shutter device {shutter_name} not active in Micro-Manager")
             self.core.set_auto_shutter(False)
 
             # close shutter
@@ -65,6 +67,9 @@ class AcquisitionManager:
         Args:
             open (bool): True to open the shutter, False to close it.
         """
+
+        # also select the right shutter here!
+
         # if the shutter is already in the desired state, do nothing
         if self.core.get_shutter_open() == open:
             print(f"Shutter is already {'open' if open else 'closed'}")
@@ -92,7 +97,7 @@ class AcquisitionManager:
         _metadata["Stage position file"] = self.position_file
         _metadata["DateTime"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
-        with open(self.save_dir / (_filename + ".json"), "w") as f:
+        with open(self.exp_path / (_filename + ".json"), "w") as f:
             json.dump(_metadata, f)
 
     def process_image(self, image: np.ndarray, metadata: dict) -> None:
@@ -122,7 +127,7 @@ class AcquisitionManager:
 
         # if this is the final spectrum in the average, save average spectrum and metadata
         if len(self.spectrum_list) == self.n_averages:
-            write_spectrum(self.save_dir / (fname + ".csv"), x, running_avg)
+            write_spectrum(self.exp_path / (fname + ".csv"), x, running_avg)
 
             self._save_metadata(fname, metadata)
 
@@ -147,7 +152,7 @@ class AcquisitionManager:
             for _, event in enumerate(events):
                 future = acq.acquire(event)
 
-                if (self.shutter is not None) and (event["axes"]["time"] == 0):
+                if self.shutter and (event["axes"]["time"] == 0):
                     # open shutter before first image in timeseries
                     self._set_shutter_open_safe(open=True)
 
@@ -156,7 +161,7 @@ class AcquisitionManager:
                 )
                 self.process_image(image, metadata)
 
-                if (self.shutter is not None) and (event["axes"]["time"] == self.n_averages - 1):
+                if self.shutter and (event["axes"]["time"] == self.n_averages - 1):
                     # close shutter after last image in timeseries
                     self._set_shutter_open_safe(open=False)
 

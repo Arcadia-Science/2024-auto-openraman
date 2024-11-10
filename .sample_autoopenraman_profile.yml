@@ -3,7 +3,7 @@ environment: testing
 deployment:
   # save_path: /path/to/default/data/dir
 
-  shutter_name: 'deplyment_shutter'
+  shutter_name: 'deployment_shutter'
 
 testing:
   save_path: data/
