@@ -34,12 +34,14 @@ class AutoOpenRamanProfile:
         self.save_dir = self._profile[self.environment].get(
             "save_dir", Path.home() / "autoopenraman_data"
         )
+        self.save_dir = Path(self.save_dir)
         self.save_dir.mkdir(parents=True, exist_ok=True)
 
         self.shutter_name = self._profile[self.environment].get("shutter_name", None)
 
         # additional settings should be added here e.g.
         # self.light_source = self._profile[self.environment].get('light_source', None)
+        print(f"Profile initialized: {self.environment} with save_dir: {self.save_dir}")
 
     def _load_profile_from_json(self):
         """Load the profile from the yaml file."""

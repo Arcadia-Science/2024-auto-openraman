@@ -4,7 +4,11 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
+from autoopenraman import profile
 from autoopenraman.cli import cli
+
+profile.init_profile("Testing")
+print(profile.environment)
 
 
 def _get_n_jsons_and_csvs_in_dir(directory: Path) -> tuple[int, int]:
@@ -33,12 +37,12 @@ def test_acq_command_no_args(runner):
 
 def test_acq_command_with_averaging(runner):
     with runner.isolated_filesystem():
-        result = runner.invoke(cli, ["acq", "--n-averages", "5", "--save-dir", "test_data"])
+        result = runner.invoke(cli, ["acq", "--n-averages", "5", "--exp-dir", "exp1"])
         assert result.exit_code == 0
         assert "Acquisition mode" in result.output
 
         # Verify the output directory and files
-        save_dir = Path("test_data")
+        save_dir = profile.save_dir / "exp1"
         assert save_dir.is_dir()
 
         n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
@@ -82,32 +86,38 @@ def test_acq_command_with_position_file(runner):
         position_file = Path("positions.json")
         _create_mock_position_file(position_file, n_positions=_n_positions)
         result = runner.invoke(
-            cli, ["acq", "--n-averages", "5", "--position_file", str(position_file)]
+            cli,
+            [
+                "acq",
+                "--n-averages",
+                "5",
+                "--position_file",
+                str(position_file),
+                "--exp-dir",
+                "exp1",
+            ],
         )
         assert result.exit_code == 0
         assert "Acquisition mode" in result.output
 
-        # Verify the AcquisitionManager behavior
-        save_dir = Path("data/")
+        save_dir = profile.save_dir / "exp1"
         assert save_dir.is_dir()
 
         n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
         assert n_jsons == _n_positions
-    assert n_csvs == _n_positions
+        assert n_csvs == _n_positions
 
 
 def test_acq_command_with_shutter(runner):
     with runner.isolated_filesystem():
-        result = runner.invoke(
-            cli, ["acq", "--shutter", "White Light Shutter", "--save-dir", "test_data"]
-        )
+        result = runner.invoke(cli, ["acq", "--shutter", "--exp-dir", "exp1"])
         assert result.exit_code == 0
         assert "Acquisition mode" in result.output
         assert "Shutter open" in result.output
         assert "Shutter closed" in result.output
 
         # Verify the output directory and files
-        save_dir = Path("test_data")
+        save_dir = profile.save_dir / "exp1"
         assert save_dir.is_dir()
 
         n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
@@ -117,6 +127,8 @@ def test_acq_command_with_shutter(runner):
 
 def test_acq_command_with_badshuttername(runner):
     with runner.isolated_filesystem():
+        original_shutter_name = profile.shutter_name
+        profile.shutter_name = "Bad shutter"
         _n_positions = 3
         position_file = Path("positions.json")
         _create_mock_position_file(position_file, n_positions=_n_positions)
@@ -126,13 +138,12 @@ def test_acq_command_with_badshuttername(runner):
                 "acq",
                 "--n-averages",
                 "5",
-                "--position_file",
-                str(position_file),
                 "--shutter",
-                "Bad shutter",
             ],
         )
         assert result.exit_code == 1
+        assert "No device" in result.exception.args[0]
+        profile.shutter_name = original_shutter_name
 
 
 def test_acq_command_with_shutter_and_position_file(runner):
@@ -146,10 +157,11 @@ def test_acq_command_with_shutter_and_position_file(runner):
                 "acq",
                 "--n-averages",
                 "5",
+                "--exp-dir",
+                "exp1",
                 "--position_file",
                 str(position_file),
                 "--shutter",
-                "White Light Shutter",
             ],
         )
         assert result.exit_code == 0
@@ -157,8 +169,8 @@ def test_acq_command_with_shutter_and_position_file(runner):
         assert "Shutter open" in result.output
         assert "Shutter closed" in result.output
 
-        # Verify the AcquisitionManager behavior
-        save_dir = Path("data/")
+        # Verify the output directory and files
+        save_dir = profile.save_dir / "exp1"
         assert save_dir.is_dir()
 
         n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)

@@ -52,8 +52,12 @@ class AcquisitionManager:
         if self.shutter:
             self.core = Core()
             shutter_name = profile.shutter_name
-            if not self.core.get_shutter_device().lower() == shutter_name:
-                raise ValueError(f"Shutter device {shutter_name} not active in Micro-Manager")
+
+            try:
+                self.core.set_shutter_device(shutter_name)
+            except ValueError as e:
+                raise ValueError(f"Shutter device {shutter_name} not found in Micro-Manager") from e
+
             self.core.set_auto_shutter(False)
 
             # close shutter
