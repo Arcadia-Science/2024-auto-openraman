@@ -1,3 +1,5 @@
+import threading
+import time
 from tkinter import Button, Checkbutton, Entry, IntVar, Label
 
 import matplotlib
@@ -39,6 +41,8 @@ class LiveModeManager:
         self._core = Core()
         self._studio = Studio(convert_camel_case=False)
 
+        self.is_stopped = False
+
         # Initialize figure and plot
         self.fig, self.ax = plt.subplots()
         self.x = np.linspace(0, 10, 200)
@@ -65,6 +69,11 @@ class LiveModeManager:
             debug (bool): If True, run the animation for 10 seconds and exit. Used for testing.
             The default is False.
         """
+
+        self.get_spectrum_from_camera()
+        # wait 1 second for the first image to be acquired
+        time.sleep(3)
+
         self.ani = FuncAnimation(
             self.fig,
             self.update_frame,
@@ -80,6 +89,7 @@ class LiveModeManager:
             plt.close("all")
         else:
             plt.show()
+        self.is_stopped = True
 
     def setup_controls(self) -> None:
         """Set up the UI controls."""
@@ -118,6 +128,7 @@ class LiveModeManager:
         self.entry_kernel_size.insert(0, "3")  # Default kernel size
         self.entry_kernel_size.pack()
 
+    '''
     def get_spectrum_from_camera(self) -> np.ndarray:
         """Acquire an image from the camera and convert to spectrum by averaging along x axis.
 
@@ -137,10 +148,44 @@ class LiveModeManager:
 
         # Convert the 2D image to a spectrum
         return image_to_spectrum(image_2d)
+    '''
+
+    def get_spectrum_from_camera(self) -> np.ndarray:
+        """Acquire an image from the camera and convert to spectrum by averaging along x axis.
+        This function is now thread-safe, using a separate thread to acquire the image.
+
+        Returns:
+            np.ndarray: The acquired spectrum.
+        """
+
+        def snap_and_process():
+            while not self.is_stopped:
+                try:
+                    self._core.snap_image()
+                    tagged_image = self._core.get_tagged_image()
+                    image_2d = np.reshape(
+                        tagged_image.pix,
+                        newshape=[-1, tagged_image.tags["Height"], tagged_image.tags["Width"]],
+                    )
+
+                    # Convert the 2D image to a spectrum
+                    spectrum = image_to_spectrum(image_2d)
+
+                    # Update the spectrum for the animation thread
+                    self.latest_spectrum = spectrum
+                except Exception as e:
+                    print(f"Error acquiring image: {e}")
+                    self.latest_spectrum = np.zeros_like(self.x)  # Default to zeros on error
+
+        # Start the snapping process in a separate thread
+        snap_thread = threading.Thread(target=snap_and_process)
+        snap_thread.start()
 
     def update_frame(self, _) -> None:
         """Update single frame of the animation."""
-        _spectrum = self.get_spectrum_from_camera()  # Update image data from the camera
+        # _spectrum = self.get_spectrum_from_camera()  # Update image data from the camera
+        if hasattr(self, "latest_spectrum") and self.latest_spectrum is not None:
+            _spectrum = self.latest_spectrum.copy()
 
         if self.roi is not None:
             _spectrum = _spectrum[self.roi["x"] : self.roi["x"] + self.roi["width"]]
