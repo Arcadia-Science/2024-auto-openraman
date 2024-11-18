@@ -1,6 +1,6 @@
 import threading
 import time
-from tkinter import Button, Checkbutton, Entry, IntVar, Label
+from tkinter import Button, Checkbutton, Entry, Frame, IntVar, Label
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -47,8 +47,7 @@ class LiveModeManager:
         self.fig, self.ax = plt.subplots()
         self.x = np.linspace(0, 10, 200)
         self.y = np.zeros_like(self.x)  # Placeholder for y data
-        (self.line,) = self.ax.plot(self.x, self.y)
-        self.ax.set_title("Live Mode")
+        (self.line,) = self.ax.plot(self.x, self.y, "k-")
         self.ax.set_xlabel("Pixels")
         self.ax.set_ylabel("Intensity")
 
@@ -93,40 +92,44 @@ class LiveModeManager:
 
     def setup_controls(self) -> None:
         """Set up the UI controls."""
-        Label(self.fig.canvas.get_tk_widget().master, text="Y Min:").pack()
-        self.entry_min = Entry(self.fig.canvas.get_tk_widget().master)
+        master = self.fig.canvas.get_tk_widget().master
+        master.title("AutoOpenRaman Live")
+        master.geometry("1200x800")  # Set overall size of the window
+
+        controls_frame = Frame(master)
+        controls_frame.pack(fill="x", pady=10)
+
+        # Create three columns for UI controls
+        y_controls = Frame(controls_frame, width=400, height=200)
+        filter_controls = Frame(controls_frame, width=400, height=200)
+        roi_controls = Frame(controls_frame, width=400, height=200)
+
+        y_controls.pack(side="left", fill="both", expand=True, padx=10)
+        filter_controls.pack(side="left", fill="both", expand=True, padx=10)
+        roi_controls.pack(side="left", fill="both", expand=True, padx=10)
+
+        # Y-axis controls
+        Label(y_controls, text="Y Min:").pack()
+        self.entry_min = Entry(y_controls)
         self.entry_min.pack()
-
-        Label(self.fig.canvas.get_tk_widget().master, text="Y Max:").pack()
-        self.entry_max = Entry(self.fig.canvas.get_tk_widget().master)
+        Label(y_controls, text="Y Max:").pack()
+        self.entry_max = Entry(y_controls)
         self.entry_max.pack()
+        Button(y_controls, text="Set Y Bounds", command=self.set_y_bounds).pack(pady=5)
+        Checkbutton(y_controls, text="Y Autoscale", variable=self.autoscale).pack(pady=5)
 
-        Button(
-            self.fig.canvas.get_tk_widget().master, text="Set Y Bounds", command=self.set_y_bounds
-        ).pack()
-
+        # Median filter controls
         Checkbutton(
-            self.fig.canvas.get_tk_widget().master, text="Y Autoscale", variable=self.autoscale
-        ).pack()
-
-        Button(
-            self.fig.canvas.get_tk_widget().master, text="Update ROI", command=self.update_roi
-        ).pack()
-
-        Checkbutton(
-            self.fig.canvas.get_tk_widget().master, text="Reverse X", variable=self.reverse_x
-        ).pack()
-
-        Checkbutton(
-            self.fig.canvas.get_tk_widget().master,
-            text="Apply Median Filter",
-            variable=self.apply_median_filter,
-        ).pack()
-
-        Label(self.fig.canvas.get_tk_widget().master, text="Kernel Size:").pack()
-        self.entry_kernel_size = Entry(self.fig.canvas.get_tk_widget().master)
+            filter_controls, text="Apply Median Filter", variable=self.apply_median_filter
+        ).pack(pady=5)
+        Label(filter_controls, text="Kernel Size:").pack(pady=5)
+        self.entry_kernel_size = Entry(filter_controls)
         self.entry_kernel_size.insert(0, "3")  # Default kernel size
         self.entry_kernel_size.pack()
+
+        # ROI and Reverse X controls
+        Button(roi_controls, text="Update ROI", command=self.update_roi).pack(pady=5)
+        Checkbutton(roi_controls, text="Reverse X", variable=self.reverse_x).pack(pady=5)
 
     '''
     def get_spectrum_from_camera(self) -> np.ndarray:
