@@ -54,7 +54,13 @@ def live(debug):
     is_flag=True,
     help="If set, will close the shutter between acquisitions (if available)",
 )
-def acq(position_file, n_averages, exp_dir, shutter):
+@click.option(
+    "-r",
+    "--randomize-stage-positions",
+    is_flag=True,
+    help="If set, the order of the stage positions will be randomized",
+)
+def acq(position_file, n_averages, exp_dir, shutter, randomize_stage_positions):
     """Start acquisition mode (No GUI). Set the parameters of acquisition"""
     click.echo("Acquisition mode")
 
@@ -74,7 +80,11 @@ def acq(position_file, n_averages, exp_dir, shutter):
     if position_file is not None:
         if not Path(position_file).is_file():
             raise FileNotFoundError(f"Stage position file not found: {position_file}")
-    AcquisitionManager(n_averages, exp_path, position_file, shutter).run_acquisition()
+    elif randomize_stage_positions:
+        raise ValueError("Randomizing stage positions requires a position file (--position-file).")
+    AcquisitionManager(
+        n_averages, exp_path, position_file, shutter, randomize_stage_positions
+    ).run_acquisition()
 
 
 @cli.command()

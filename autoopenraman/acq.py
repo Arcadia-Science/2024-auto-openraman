@@ -17,6 +17,7 @@ class AcquisitionManager:
         exp_path: Path = Path("data/"),
         position_file: Path | None = None,
         shutter: bool = False,
+        randomize_stage_positions: bool = False,
     ):
         """Initialize the AcquisitionManager.
 
@@ -28,6 +29,8 @@ class AcquisitionManager:
                 If none, the stage positions are not used. The default is None.
             shutter (bool): If True, find the shutter device in MM (defined in profile)
                 and close it between positions. The default is False (use auto-shutter).
+            randomize_stage_positions (bool): If True, the order of the positions will be
+                randomized.
         """
 
         self.n_averages = n_averages
@@ -36,7 +39,9 @@ class AcquisitionManager:
         self.shutter = shutter
 
         if position_file is not None:
-            self.xy_positions, self.labels = extract_stage_positions(position_file)
+            self.xy_positions, self.labels = extract_stage_positions(
+                position_file, randomize_stage_positions
+            )
         else:
             self.xy_positions = None
             self.labels = None
@@ -148,7 +153,7 @@ class AcquisitionManager:
                 num_time_points=self.n_averages,
                 time_interval_s=0,
                 xy_positions=self.xy_positions,
-                position_labels=self.labels,
+                position_labels=self.labels.tolist(),
                 order="pt",
             )
             print(events)
