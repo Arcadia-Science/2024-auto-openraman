@@ -2,7 +2,7 @@ from pathlib import Path
 
 import click
 
-from autoopenraman import profile
+from autoopenraman import configprofile
 from autoopenraman.acq import AcquisitionManager
 from autoopenraman.live import LiveModeManager
 from autoopenraman.plot import SpectrumPlotter
@@ -64,7 +64,7 @@ def acq(position_file, n_averages, exp_dir, shutter, randomize_stage_positions):
     """Start acquisition mode (No GUI). Set the parameters of acquisition"""
     click.echo("Acquisition mode")
 
-    exp_path = Path(profile.save_dir) / exp_dir
+    exp_path = Path(configprofile.save_dir) / exp_dir
 
     if not exp_path.is_dir():
         print(f"Creating save directory: {exp_path}")

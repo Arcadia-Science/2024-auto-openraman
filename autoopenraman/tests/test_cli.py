@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from autoopenraman import profile
+from autoopenraman import configprofile
 from autoopenraman.cli import cli
 
 
@@ -25,7 +25,7 @@ def setup_environment(request):
     print("setup_environment")
     env_to_run = request.config.getoption("--environment")
     print(f"Setting up environment: {env_to_run}")
-    profile.init_profile(env_to_run)
+    configprofile.init_profile(env_to_run)
 
 
 def test_live_command(runner):
@@ -47,7 +47,7 @@ def test_acq_command_with_averaging(runner):
         assert "Acquisition mode" in result.output
 
         # Verify the output directory and files
-        save_dir = profile.save_dir / "exp1"
+        save_dir = configprofile.save_dir / "exp1"
         assert save_dir.is_dir()
 
         n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
@@ -105,7 +105,7 @@ def test_acq_command_with_position_file(runner):
         assert result.exit_code == 0
         assert "Acquisition mode" in result.output
 
-        save_dir = profile.save_dir / "exp1"
+        save_dir = configprofile.save_dir / "exp1"
         assert save_dir.is_dir()
 
         n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
@@ -122,7 +122,7 @@ def test_acq_command_with_shutter(runner):
         assert "Shutter closed" in result.output
 
         # Verify the output directory and files
-        save_dir = profile.save_dir / "exp1"
+        save_dir = configprofile.save_dir / "exp1"
         assert save_dir.is_dir()
 
         n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
@@ -132,7 +132,7 @@ def test_acq_command_with_shutter(runner):
 
 def test_acq_command_with_badshuttername(runner):
     with runner.isolated_filesystem():
-        profile.shutter_name = "Bad shutter"
+        configprofile.shutter_name = "Bad shutter"
         _n_positions = 3
         position_file = Path("positions.json")
         _create_mock_position_file(position_file, n_positions=_n_positions)
@@ -173,7 +173,7 @@ def test_acq_command_with_shutter_and_position_file(runner):
         assert "Shutter closed" in result.output
 
         # Verify the output directory and files
-        save_dir = profile.save_dir / "exp1"
+        save_dir = configprofile.save_dir / "exp1"
         assert save_dir.is_dir()
 
         n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)

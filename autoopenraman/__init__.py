@@ -1,3 +1,3 @@
-from autoopenraman.profile import AutoOpenRamanProfile
+from autoopenraman.configprofile import AutoOpenRamanProfile
 
-profile = AutoOpenRamanProfile()
+autoramanprofile = AutoOpenRamanProfile()
