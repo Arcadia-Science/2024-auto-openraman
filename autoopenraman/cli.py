@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 import click
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
 
 from autoopenraman import configprofile
@@ -30,8 +31,12 @@ def live(debug):
     """Start live mode (GUI)"""
     click.echo("Live mode")
     app = QApplication(sys.argv)
-    window = LiveModeManager()
+    window = LiveModeManager(debug)
     window.show()
+
+    if debug:
+        QTimer.singleShot(5000, app.quit)  # Run for 5 seconds and then quit
+
     sys.exit(app.exec_())
 
 

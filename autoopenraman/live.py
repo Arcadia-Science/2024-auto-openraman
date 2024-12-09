@@ -2,7 +2,7 @@ import sys
 
 import numpy as np
 from pycromanager import Core, Studio
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -52,9 +52,10 @@ class CameraWorker(QThread):
 
 # Main Application Class
 class LiveModeManager(QMainWindow):
-    def __init__(self):
+    def __init__(self, debug=False):
         super().__init__()
 
+        self.debug = debug
         # Pycro-Manager Studio Initialization
         self._studio = Studio(convert_camel_case=True)
 
@@ -105,6 +106,12 @@ class LiveModeManager(QMainWindow):
         self.worker = None
         self.apply_median_filter = False
 
+        if self.debug:
+            print("Debug mode enabled")
+            self.start_acquisition()
+            timer = QTimer()
+            timer.singleShot(5000, self.stop_acquisition)
+
     def toggle_median_filter(self):
         """Toggle median filter application."""
         self.apply_median_filter = self.median_filter_check.isChecked()
@@ -115,6 +122,7 @@ class LiveModeManager(QMainWindow):
 
     def start_acquisition(self):
         """Start the worker thread for live acquisition."""
+        print("Starting acquisition...")
         self.worker = CameraWorker()
         self.worker.data_acquired.connect(self.update_plot)
         self.worker.start()
@@ -128,6 +136,7 @@ class LiveModeManager(QMainWindow):
             self.worker.stop()
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
+        print("Stopped acquisition...")
 
     def update_plot(self, spectrum):
         """Update the plot with new spectrum data."""

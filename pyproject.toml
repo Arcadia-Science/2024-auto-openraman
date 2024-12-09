@@ -49,6 +49,7 @@ plotly = "^5.24.1"
 pathlib = "^1.0.1"
 tk = "^0.1.0"
 pycromanager = {git = "https://github.com/micro-manager/pycro-manager.git"}
+pyqt5 = "^5.15.11"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "3.5.0"
