@@ -1,6 +1,8 @@
+import sys
 from pathlib import Path
 
 import click
+from PyQt5.QtWidgets import QApplication
 
 from autoopenraman import configprofile
 from autoopenraman.acq import AcquisitionManager
@@ -27,7 +29,10 @@ def cli():
 def live(debug):
     """Start live mode (GUI)"""
     click.echo("Live mode")
-    LiveModeManager().run(debug)
+    app = QApplication(sys.argv)
+    window = LiveModeManager()
+    window.show()
+    sys.exit(app.exec_())
 
 
 @cli.command()
