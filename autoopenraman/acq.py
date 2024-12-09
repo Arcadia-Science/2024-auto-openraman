@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pycromanager import Acquisition, Core, multi_d_acquisition_events
 
-from autoopenraman import profile
+from autoopenraman import configprofile
 from autoopenraman.utils import extract_stage_positions, image_to_spectrum, write_spectrum
 
 
@@ -56,7 +56,7 @@ class AcquisitionManager:
 
         if self.shutter:
             self.core = Core()
-            shutter_name = profile.shutter_name
+            shutter_name = configprofile.shutter_name
 
             try:
                 self.core.set_shutter_device(shutter_name)
@@ -153,7 +153,7 @@ class AcquisitionManager:
                 num_time_points=self.n_averages,
                 time_interval_s=0,
                 xy_positions=self.xy_positions,
-                position_labels=self.labels.tolist(),
+                position_labels=self.labels,
                 order="pt",
             )
             print(events)
