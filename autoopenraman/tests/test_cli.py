@@ -35,9 +35,10 @@ def test_live_command(runner):
 
 
 def test_acq_command_no_args(runner):
-    result = runner.invoke(cli, ["acq"])
-    assert result.exit_code == 0
-    assert "Acquisition mode" in result.output
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["acq"])
+        assert result.exit_code == 0
+        assert "Acquisition mode" in result.output
 
 
 def test_acq_command_with_averaging(runner):
