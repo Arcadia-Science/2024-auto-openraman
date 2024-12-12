@@ -1,4 +1,8 @@
 # Device Manager to initialize and communicate with devices
+
+AVAILABLE_SPECTROMETERS = ["wasatch", "openraman"]
+
+
 class SpectrometerDeviceManager:
     def __init__(self):
         self.device = None
@@ -8,12 +12,13 @@ class SpectrometerDeviceManager:
         Initialize a device based on its type.
         :param device: String specifying the device type ("DeviceA" or "DeviceB").
         """
-        if device == "WasatchSpectrometer":
-            from wasatch_spectrometer import WasatchSpectrometer
+        device = device.lower()
+        if device == AVAILABLE_SPECTROMETERS[0]:
+            from autoopenraman.wasatch_spectrometer import WasatchSpectrometer
 
             self.device = WasatchSpectrometer()
-        elif device == "OpenRamanSpectrometer":
-            from openraman_spectrometer import OpenRamanSpectrometer
+        elif device == AVAILABLE_SPECTROMETERS[1]:
+            from autoopenraman.openraman_spectrometer import OpenRamanSpectrometer
 
             self.device = OpenRamanSpectrometer()
         else:

@@ -1,7 +1,7 @@
 import numpy as np
 from pycromanager import Core, Studio
-from spectrometer_device import AbstractSpectrometerDevice
 
+from autoopenraman.spectrometer_device import AbstractSpectrometerDevice
 from autoopenraman.utils import image_to_spectrum
 
 

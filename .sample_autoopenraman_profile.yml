@@ -4,8 +4,10 @@ deployment:
   # save_path: /path/to/default/data/dir
 
   shutter_name: 'deployment_shutter'
+  spectrometer: 'wasatch'
 
 testing:
   save_path: data/
 
   shutter_name: 'White Light Shutter'
+  spectrometer: 'openraman'

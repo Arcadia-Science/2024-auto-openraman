@@ -16,7 +16,8 @@ from PyQt5.QtWidgets import (
 )
 from pyqtgraph import PlotWidget
 from scipy.signal import medfilt
-from spectrometer_device_manager import SpectrometerDeviceManager
+
+from autoopenraman.spectrometer_device_manager import SpectrometerDeviceManager
 
 
 # Worker Thread for Image Acquisition
@@ -44,7 +45,7 @@ class SpectrometerAcquisition(QThread):
 
 # Main Application Class
 class LiveModeManager(QMainWindow):
-    def __init__(self, debug=False):
+    def __init__(self, spectrometer, debug=False):
         super().__init__()
 
         self.debug = debug
@@ -76,6 +77,7 @@ class LiveModeManager(QMainWindow):
         exposure_layout.addWidget(QLabel("Exposure Time (ms):"))
         self.exposure_time_input = QLineEdit("100")
         self.exposure_time_input.returnPressed.connect(self.set_exposure_time)
+        self.exposure_time_input.editingFinished.connect(self.set_exposure_time)
         exposure_layout.addWidget(self.exposure_time_input)
         column1_layout.addLayout(exposure_layout)
 
@@ -144,7 +146,7 @@ class LiveModeManager(QMainWindow):
             timer.singleShot(5000, self.stop_acquisition)
 
         # Initialize spectrometer
-        self.spectrometer_device = SpectrometerDeviceManager().initialize("OpenRamanSpectrometer")
+        self.spectrometer_device = SpectrometerDeviceManager().initialize(spectrometer)
         if not self.spectrometer_device.connect():
             raise ValueError("Could not connect to spectrometer")
 
@@ -213,6 +215,6 @@ class LiveModeManager(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = LiveModeManager()
+    window = LiveModeManager("openraman", debug=False)
     window.show()
     sys.exit(app.exec_())

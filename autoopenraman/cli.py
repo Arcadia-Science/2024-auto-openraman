@@ -31,7 +31,8 @@ def live(debug):
     """Start live mode (GUI)"""
     click.echo("Live mode")
     app = QApplication(sys.argv)
-    window = LiveModeManager(debug)
+
+    window = LiveModeManager(configprofile.spectrometer, debug)
     window.show()
 
     if debug:

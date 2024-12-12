@@ -1,10 +1,11 @@
 import time
 
 import numpy as np
-from spectrometer_device import AbstractSpectrometerDevice
 from wasatch.RealUSBDevice import RealUSBDevice
 from wasatch.WasatchBus import WasatchBus
 from wasatch.WasatchDevice import WasatchDevice
+
+from autoopenraman.spectrometer_device import AbstractSpectrometerDevice
 
 LASER_WARMUP_SEC = 10
 TEMPFILE = "spectrum.csv"  # for debugging
