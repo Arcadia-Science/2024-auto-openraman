@@ -32,7 +32,7 @@ def live(debug):
     click.echo("Live mode")
     app = QApplication(sys.argv)
 
-    window = LiveModeManager(configprofile.spectrometer, debug)
+    window = LiveModeManager(debug)
     window.show()
 
     if debug:
@@ -71,7 +71,27 @@ def live(debug):
     is_flag=True,
     help="If set, the order of the stage positions will be randomized",
 )
-def acq(position_file, n_averages, exp_dir, shutter, randomize_stage_positions):
+@click.option(
+    "--wasatch-integration-time-ms",
+    type=int,
+    help="Integration time for Wasatch spectrometer (ms)",
+    default=None,
+)
+@click.option(
+    "--wasatch-laser-power-mw",
+    type=int,
+    help="Laser power for Wasatch spectrometer (mW)",
+    default=None,
+)
+def acq(
+    position_file,
+    n_averages,
+    exp_dir,
+    shutter,
+    randomize_stage_positions,
+    wasatch_integration_time_ms,
+    wasatch_laser_power_mw,
+):
     """Start acquisition mode (No GUI). Set the parameters of acquisition"""
     click.echo("Acquisition mode")
 
@@ -93,8 +113,15 @@ def acq(position_file, n_averages, exp_dir, shutter, randomize_stage_positions):
             raise FileNotFoundError(f"Stage position file not found: {position_file}")
     elif randomize_stage_positions:
         raise ValueError("Randomizing stage positions requires a position file (--position-file).")
+
     AcquisitionManager(
-        n_averages, exp_path, position_file, shutter, randomize_stage_positions
+        n_averages,
+        exp_path,
+        position_file,
+        shutter,
+        randomize_stage_positions,
+        wasatch_integration_time_ms,
+        wasatch_laser_power_mw,
     ).run_acquisition()
 
 

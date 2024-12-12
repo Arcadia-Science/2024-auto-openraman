@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 from pyqtgraph import PlotWidget
 from scipy.signal import medfilt
 
+from autoopenraman import configprofile
 from autoopenraman.spectrometer_device_manager import SpectrometerDeviceManager
 
 
@@ -44,12 +45,19 @@ class SpectrometerAcquisition(QThread):
 
 # Main Application Class
 class LiveModeManager(QMainWindow):
-    def __init__(self, spectrometer, debug=False):
+    def __init__(self, debug=False):
         super().__init__()
 
         self.debug = debug
         # Pycro-Manager Studio Initialization
         self._studio = Studio(convert_camel_case=True)
+
+        # Initialize spectrometer
+        self.spectrometer_device = SpectrometerDeviceManager().initialize(
+            configprofile.spectrometer
+        )
+        if not self.spectrometer_device.connect():
+            raise ValueError("Could not connect to spectrometer")
 
         # Main GUI Setup
         self.setWindowTitle("Live Mode Manager")
@@ -143,11 +151,6 @@ class LiveModeManager(QMainWindow):
             self.start_acquisition()
             timer = QTimer()
             timer.singleShot(5000, self.stop_acquisition)
-
-        # Initialize spectrometer
-        self.spectrometer_device = SpectrometerDeviceManager().initialize(spectrometer)
-        if not self.spectrometer_device.connect():
-            raise ValueError("Could not connect to spectrometer")
 
     def set_exposure_time(self):
         """Set the exposure time for the spectrometer."""

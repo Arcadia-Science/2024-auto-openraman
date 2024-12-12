@@ -7,6 +7,7 @@ import numpy as np
 from pycromanager import Acquisition, Core, multi_d_acquisition_events
 
 from autoopenraman import configprofile
+from autoopenraman.spectrometer_device_manager import SpectrometerDeviceManager
 from autoopenraman.utils import extract_stage_positions, image_to_spectrum, write_spectrum
 
 
@@ -18,6 +19,8 @@ class AcquisitionManager:
         position_file: Path | None = None,
         shutter: bool = False,
         randomize_stage_positions: bool = False,
+        wasatch_integration_time_ms=None,
+        wasatch_laser_power_mW=None,
     ):
         """Initialize the AcquisitionManager.
 
@@ -37,6 +40,7 @@ class AcquisitionManager:
         self.exp_path = Path(exp_path)
         self.position_file = position_file
         self.shutter = shutter
+        self.is_wasatch = "wasatch" in configprofile.spectrometer.lower()
 
         if position_file is not None:
             self.xy_positions, self.labels = extract_stage_positions(
@@ -67,6 +71,24 @@ class AcquisitionManager:
 
             # close shutter
             self._set_shutter_open_safe(open=False)
+
+        # Need to initialize wasatch spectrometer here
+        if self.is_wasatch:
+            # Initialize spectrometer
+            self.spectrometer_device = SpectrometerDeviceManager().initialize(
+                configprofile.spectrometer
+            )
+            if not self.spectrometer_device.connect():
+                raise ValueError("Could not connect to spectrometer")
+            if wasatch_integration_time_ms is not None:
+                self.spectrometer_device.set_integration_time_ms(wasatch_integration_time_ms)
+            else:
+                raise ValueError("Wasatch integration time (--wasatch-integration-time-ms) not set")
+            if wasatch_laser_power_mW is not None:
+                self.spectrometer_device.set_laser_power_mW(wasatch_laser_power_mW)
+            else:
+                raise ValueError("Wasatch laser power (--wasatch-laser-power-mW) not set")
+            self.spectrometer_device.laser_on()
 
     def _set_shutter_open_safe(self, open: bool) -> None:
         """Set the shutter open safely.
@@ -118,9 +140,14 @@ class AcquisitionManager:
         """
         print("process_image")
         fname = metadata.get("PositionName", metadata.get("Position", "DefaultPos"))
-        img_spectrum = image_to_spectrum(image)
 
-        x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
+        if self.is_wasatch:
+            # Acquisition actually done here
+            x, img_spectrum = self.spectrometer_device.get_spectrum()
+        else:
+            img_spectrum = image_to_spectrum(image)
+            x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
+
         self.spectrum_list.append(img_spectrum)
 
         # Update the plot
@@ -147,31 +174,36 @@ class AcquisitionManager:
         start = time.time()
 
         plt.show(block=False)
-
-        with Acquisition(show_display=False) as acq:
-            events = multi_d_acquisition_events(
-                num_time_points=self.n_averages,
-                time_interval_s=0,
-                xy_positions=self.xy_positions,
-                position_labels=self.labels,
-                order="pt",
-            )
-            print(events)
-
-            for _, event in enumerate(events):
-                future = acq.acquire(event)
-
-                if self.shutter and (event["axes"]["time"] == 0):
-                    # open shutter before first image in timeseries
-                    self._set_shutter_open_safe(open=True)
-
-                image, metadata = future.await_image_saved(
-                    event["axes"], return_image=True, return_metadata=True
+        try:
+            with Acquisition(show_display=False) as acq:
+                events = multi_d_acquisition_events(
+                    num_time_points=self.n_averages,
+                    time_interval_s=0,
+                    xy_positions=self.xy_positions,
+                    position_labels=self.labels,
+                    order="pt",
                 )
-                self.process_image(image, metadata)
+                print(events)
 
-                if self.shutter and (event["axes"]["time"] == self.n_averages - 1):
-                    # close shutter after last image in timeseries
-                    self._set_shutter_open_safe(open=False)
+                for _, event in enumerate(events):
+                    future = acq.acquire(event)
 
-        print(f"Time elapsed: {time.time() - start:.2f} s")
+                    if self.shutter and (event["axes"]["time"] == 0):
+                        # open shutter before first image in timeseries
+                        self._set_shutter_open_safe(open=True)
+
+                    image, metadata = future.await_image_saved(
+                        event["axes"], return_image=True, return_metadata=True
+                    )
+                    self.process_image(image, metadata)
+
+                    if self.shutter and (event["axes"]["time"] == self.n_averages - 1):
+                        # close shutter after last image in timeseries
+                        self._set_shutter_open_safe(open=False)
+        except Exception as e:
+            print(f"Error during acquisition: {e}\n Time elapsed: {time.time() - start:.2f} s")
+        finally:
+            if self.is_wasatch:
+                self.spectrometer_device.laser_off()
+            plt.close()
+            print(f"Acquisition complete. Time elapsed: {time.time() - start:.2f} s")
