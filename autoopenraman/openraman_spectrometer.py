@@ -24,7 +24,8 @@ class OpenRamanSpectrometer(AbstractSpectrometerDevice):
             newshape=[-1, tagged_image.tags["Height"], tagged_image.tags["Width"]],
         )
         spectrum = image_to_spectrum(image_2d)
-        return spectrum
+        x = np.linspace(0, len(spectrum), len(spectrum))
+        return x, spectrum
 
     def connect(self):
         try:

@@ -87,4 +87,4 @@ class WasatchSpectrometer(AbstractSpectrometerDevice):
             with open(TEMPFILE, "w") as outfile:
                 outfile.write("\n".join([f"{x:0.2f}" for x in spectrum]))
 
-            return np.asarray(spectrum)
+            return self.settings.wavenumbers, np.asarray(spectrum)

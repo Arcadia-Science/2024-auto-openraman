@@ -1,6 +1,5 @@
 import sys
 
-import numpy as np
 from pycromanager import Studio
 from PyQt5.QtCore import QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
@@ -22,7 +21,7 @@ from autoopenraman.spectrometer_device_manager import SpectrometerDeviceManager
 
 # Worker Thread for Image Acquisition
 class SpectrometerAcquisition(QThread):
-    data_acquired = pyqtSignal(np.ndarray)  # Signal to emit spectrum data
+    data_acquired = pyqtSignal(tuple)  # Signal to emit spectrum data
 
     def __init__(self, spectrometer):
         super().__init__()
@@ -32,10 +31,10 @@ class SpectrometerAcquisition(QThread):
     def run(self):
         while self.running:
             try:
-                spectrum = self.spectrometer.get_spectrum()
-                self.data_acquired.emit(spectrum)
+                spectrum_xy = self.spectrometer.get_spectrum()
+                self.data_acquired.emit(spectrum_xy)
             except Exception as e:
-                print(f"Error snapping image: {e}")
+                print(f"Error Acquiring spectrum: {e}")
 
     def stop(self):
         self.running = False
@@ -195,16 +194,16 @@ class LiveModeManager(QMainWindow):
         self.stop_btn.setEnabled(False)
         print("Stopped acquisition...")
 
-    def update_plot(self, spectrum):
+    def update_plot(self, spectrum_xy):
         """Update the plot with new spectrum data."""
+        x, spectrum = spectrum_xy
         if self.apply_median_filter:
             spectrum = medfilt(spectrum, kernel_size=3)
 
         if self.reverse_x:
             spectrum = spectrum[::-1]
 
-        x_data = np.linspace(0, len(spectrum), len(spectrum))
-        self.plot.setData(x_data, spectrum)
+        self.plot.setData(x, spectrum)
 
     def closeEvent(self, event):
         """Handle window close event to stop worker thread."""
