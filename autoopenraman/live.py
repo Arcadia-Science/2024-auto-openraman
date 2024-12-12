@@ -1,7 +1,7 @@
 import sys
 
 import numpy as np
-from pycromanager import Core, Studio
+from pycromanager import Studio
 from PyQt5.QtCore import QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QApplication,
@@ -16,30 +16,22 @@ from PyQt5.QtWidgets import (
 )
 from pyqtgraph import PlotWidget
 from scipy.signal import medfilt
-
-from autoopenraman.utils import image_to_spectrum
+from spectrometer_device_manager import SpectrometerDeviceManager
 
 
 # Worker Thread for Image Acquisition
-class CameraWorker(QThread):
+class SpectrometerAcquisition(QThread):
     data_acquired = pyqtSignal(np.ndarray)  # Signal to emit spectrum data
 
-    def __init__(self):
+    def __init__(self, spectrometer):
         super().__init__()
-        self._core = Core()
+        self.spectrometer = spectrometer
         self.running = True
 
     def run(self):
         while self.running:
             try:
-                # Simulate slow acquisition
-                self._core.snap_image()
-                tagged_image = self._core.get_tagged_image()
-                image_2d = np.reshape(
-                    tagged_image.pix,
-                    newshape=[-1, tagged_image.tags["Height"], tagged_image.tags["Width"]],
-                )
-                spectrum = image_to_spectrum(image_2d)
+                spectrum = self.spectrometer.get_spectrum()
                 self.data_acquired.emit(spectrum)
             except Exception as e:
                 print(f"Error snapping image: {e}")
@@ -75,30 +67,69 @@ class LiveModeManager(QMainWindow):
         # Controls
         controls_layout = QHBoxLayout()
 
+        # Column 1: Spectrometer Settings
+        column1_layout = QVBoxLayout()
+        column1_layout.addWidget(QLabel("Spectrometer Settings"))
+
+        # Exposure Time Input
+        exposure_layout = QHBoxLayout()
+        exposure_layout.addWidget(QLabel("Exposure Time (ms):"))
+        self.exposure_time_input = QLineEdit("100")
+        self.exposure_time_input.returnPressed.connect(self.set_exposure_time)
+        exposure_layout.addWidget(self.exposure_time_input)
+        column1_layout.addLayout(exposure_layout)
+
+        # Laser Power Input
+        laser_power_layout = QHBoxLayout()
+        laser_power_layout.addWidget(QLabel("Laser Power (mW):"))
+        self.laser_power_input = QLineEdit("100")
+        self.laser_power_input.returnPressed.connect(self.set_laser_power)
+        laser_power_layout.addWidget(self.laser_power_input)
+        column1_layout.addLayout(laser_power_layout)
+
+        controls_layout.addLayout(column1_layout)
+
+        # Column 2: Laser Control
+        column2_layout = QVBoxLayout()
+        column2_layout.addWidget(QLabel("Laser Control"))
+
+        # Laser On/Off Toggle
+        self.laser_on_btn = QPushButton("Laser On")
+        self.laser_on_btn.setCheckable(True)
+        self.laser_on_btn.clicked.connect(self.toggle_laser)
+        column2_layout.addWidget(self.laser_on_btn)
+
+        controls_layout.addLayout(column2_layout)
+
+        # Column 3: Acquisition Control
+        column3_layout = QVBoxLayout()
+        column3_layout.addWidget(QLabel("Acquisition Control"))
+
         # Reverse X
         self.reverse_x = False
         self.reverse_x_check = QCheckBox("Reverse X")
         self.reverse_x_check.stateChanged.connect(self.toggle_reverse_x)
-        controls_layout.addWidget(self.reverse_x_check)
+        column3_layout.addWidget(self.reverse_x_check)
+
         # Median Filter Checkbox
         self.median_filter_check = QCheckBox("Apply Median Filter")
         self.median_filter_check.stateChanged.connect(self.toggle_median_filter)
-        controls_layout.addWidget(self.median_filter_check)
-
-        # Kernel Size Input
-        controls_layout.addWidget(QLabel("Kernel Size:"))
-        self.kernel_size_input = QLineEdit("3")
-        controls_layout.addWidget(self.kernel_size_input)
+        column3_layout.addWidget(self.median_filter_check)
 
         # Start/Stop Button
+        start_stop_layout = QHBoxLayout()
         self.start_btn = QPushButton("Start")
         self.start_btn.clicked.connect(self.start_acquisition)
-        controls_layout.addWidget(self.start_btn)
+        start_stop_layout.addWidget(self.start_btn)
 
         self.stop_btn = QPushButton("Stop")
         self.stop_btn.clicked.connect(self.stop_acquisition)
         self.stop_btn.setEnabled(False)
-        controls_layout.addWidget(self.stop_btn)
+        start_stop_layout.addWidget(self.stop_btn)
+
+        column3_layout.addLayout(start_stop_layout)
+
+        controls_layout.addLayout(column3_layout)
 
         self.layout.addLayout(controls_layout)
 
@@ -112,6 +143,30 @@ class LiveModeManager(QMainWindow):
             timer = QTimer()
             timer.singleShot(5000, self.stop_acquisition)
 
+        # Initialize spectrometer
+        self.spectrometer_device = SpectrometerDeviceManager().initialize("OpenRamanSpectrometer")
+        if not self.spectrometer_device.connect():
+            raise ValueError("Could not connect to spectrometer")
+
+    def set_exposure_time(self):
+        """Set the exposure time for the spectrometer."""
+        exposure_time = int(self.exposure_time_input.text())
+        self.spectrometer_device.set_integration_time_ms(exposure_time)
+
+    def toggle_laser(self):
+        """Toggle laser on/off."""
+        if self.laser_on_btn.isChecked():
+            self.spectrometer_device.laser_on()
+            self.laser_on_btn.setText("Laser Off")
+        else:
+            self.spectrometer_device.laser_off()
+            self.laser_on_btn.setText("Laser On")
+
+    def set_laser_power(self):
+        """Set the laser power for the spectrometer."""
+        laser_power = int(self.laser_power_input.text())
+        self.spectrometer_device.set_laser_power_mW(laser_power)
+
     def toggle_median_filter(self):
         """Toggle median filter application."""
         self.apply_median_filter = self.median_filter_check.isChecked()
@@ -123,7 +178,7 @@ class LiveModeManager(QMainWindow):
     def start_acquisition(self):
         """Start the worker thread for live acquisition."""
         print("Starting acquisition...")
-        self.worker = CameraWorker()
+        self.worker = SpectrometerAcquisition(self.spectrometer_device)
         self.worker.data_acquired.connect(self.update_plot)
         self.worker.start()
 
@@ -141,12 +196,7 @@ class LiveModeManager(QMainWindow):
     def update_plot(self, spectrum):
         """Update the plot with new spectrum data."""
         if self.apply_median_filter:
-            try:
-                kernel_size = int(self.kernel_size_input.text())
-                spectrum = medfilt(spectrum, kernel_size=kernel_size)
-            except ValueError:
-                print("Invalid kernel size. Using default of 3.")
-                spectrum = medfilt(spectrum, kernel_size=3)
+            spectrum = medfilt(spectrum, kernel_size=3)
 
         if self.reverse_x:
             spectrum = spectrum[::-1]

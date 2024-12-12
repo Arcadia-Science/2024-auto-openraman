@@ -3198,6 +3198,17 @@ files = [
 ]
 
 [[package]]
+name = "pyusb"
+version = "1.2.1"
+description = "Python USB access module"
+optional = false
+python-versions = ">=3.6.0"
+files = [
+    {file = "pyusb-1.2.1-py3-none-any.whl", hash = "sha256:2b4c7cb86dbadf044dfb9d3a4ff69fd217013dbe78a792177a3feb172449ea36"},
+    {file = "pyusb-1.2.1.tar.gz", hash = "sha256:a4cc7404a203144754164b8b40994e2849fde1cfff06b08492f12fff9d9de7b9"},
+]
+
+[[package]]
 name = "pywin32"
 version = "308"
 description = "Python for Window Extensions"
@@ -4367,6 +4378,17 @@ docs = ["furo (>=2023.7.26)", "proselint (>=0.13)", "sphinx (>=7.1.2,!=7.3)", "s
 test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess (>=1)", "flaky (>=3.7)", "packaging (>=23.1)", "pytest (>=7.4)", "pytest-env (>=0.8.2)", "pytest-freezer (>=0.4.8)", "pytest-mock (>=3.11.1)", "pytest-randomly (>=3.12)", "pytest-timeout (>=2.1)", "setuptools (>=68)", "time-machine (>=2.10)"]
 
 [[package]]
+name = "wasatch"
+version = "2.2.15"
+description = "This package is a driver for Wasatch Photonics spectrometers"
+optional = false
+python-versions = "*"
+files = [
+    {file = "wasatch-2.2.15-py2.py3-none-any.whl", hash = "sha256:3fc3ce68a11ed19bbfd2ded2ab4c21915a4b0b6ff41fd0a5c8f428563149a7fd"},
+    {file = "wasatch-2.2.15.tar.gz", hash = "sha256:b36979c3bdfbd6ba3ff2b1f89fe50763760d6346d510cd65428b02dce073462a"},
+]
+
+[[package]]
 name = "wcwidth"
 version = "0.2.13"
 description = "Measures the displayed width of unicode strings in a terminal"
@@ -4524,4 +4546,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.13"
-content-hash = "6baa0e575c40ec04209fc2166f0df966d013ae2afa69ba640aa887b008cbfdaa"
+content-hash = "c605b5c158dba418c021a0a3d8f6b98295677d20724a7196b6632117ac6e27ed"

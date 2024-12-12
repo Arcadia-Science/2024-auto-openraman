@@ -51,6 +51,8 @@ tk = "^0.1.0"
 pycromanager = {git = "https://github.com/micro-manager/pycro-manager.git"}
 pyqt5 = "^5.15.11"
 pyqtgraph = "^0.13.7"
+wasatch = "^2.2.15"
+pyusb = "^1.2.1"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "3.5.0"
