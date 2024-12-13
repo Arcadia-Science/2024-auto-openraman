@@ -12,8 +12,10 @@ TEMPFILE = "spectrum.csv"  # for debugging
 
 
 class WasatchSpectrometer(AbstractSpectrometerDevice):
+    """Wasatch USB spectrometer device."""
+
     def __init__(self, integ_time_ms, laser_power_mW):
-        super().__init__(device_type="WasatchSpectrometer")
+        super().__init__()
         self.integ_time_ms = integ_time_ms
         self.laser_power_mW = laser_power_mW
 

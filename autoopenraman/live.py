@@ -20,8 +20,15 @@ from autoopenraman import configprofile
 from autoopenraman.spectrometer_device_manager import SpectrometerDeviceManager
 
 
-# Worker Thread for Image Acquisition
 class SpectrometerAcquisition(QThread):
+    """Worker thread to acquire spectrum data from a spectrometer.
+
+    Attributes:
+        spectrometer (AbstractSpectrometerDevice): The spectrometer device to acquire data from.
+        running (bool): Flag to control the thread execution
+        data_acquired (pyqtSignal): Signal to emit spectrum data
+    """
+
     data_acquired = pyqtSignal(tuple)  # Signal to emit spectrum data
 
     def __init__(self, spectrometer):
@@ -30,6 +37,7 @@ class SpectrometerAcquisition(QThread):
         self.running = True
 
     def run(self):
+        """Run the worker thread to acquire spectrum data."""
         while self.running:
             try:
                 spectrum_xy = self.spectrometer.get_spectrum()
@@ -38,12 +46,12 @@ class SpectrometerAcquisition(QThread):
                 print(f"Error Acquiring spectrum: {e}")
 
     def stop(self):
+        """Stop the worker thread."""
         self.running = False
         self.quit()
         self.wait()
 
 
-# Main Application Class
 class LiveModeManager(QMainWindow):
     def __init__(self, debug=False):
         super().__init__()
@@ -52,7 +60,7 @@ class LiveModeManager(QMainWindow):
         # Pycro-Manager Studio Initialization
         self._studio = Studio(convert_camel_case=True)
 
-        # Initialize spectrometer
+        # Initialize spectrometer and connect
         self.spectrometer_device = SpectrometerDeviceManager().initialize(
             configprofile.spectrometer
         )
@@ -60,7 +68,7 @@ class LiveModeManager(QMainWindow):
             raise ValueError("Could not connect to spectrometer")
 
         # Main GUI Setup
-        self.setWindowTitle("Live Mode Manager")
+        self.setWindowTitle("Spectrometer Live Mode")
         self.setGeometry(100, 100, 800, 500)
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -142,11 +150,11 @@ class LiveModeManager(QMainWindow):
 
         self.layout.addLayout(controls_layout)
 
-        # Thread Setup
         self.worker = None
         self.apply_median_filter = False
 
         if self.debug:
+            """Debug mode used for testing. Starts acquisition for 5 seconds."""
             print("Debug mode enabled")
             self.start_acquisition()
             timer = QTimer()
@@ -217,6 +225,6 @@ class LiveModeManager(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = LiveModeManager("openraman", debug=False)
+    window = LiveModeManager(debug=False)
     window.show()
     sys.exit(app.exec_())

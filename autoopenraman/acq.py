@@ -72,9 +72,11 @@ class AcquisitionManager:
             # close shutter
             self._set_shutter_open_safe(open=False)
 
-        # Need to initialize wasatch spectrometer here
         if self.is_wasatch:
-            # Initialize spectrometer
+            """
+            Only need to initialize the spectrometer device if using Wasatch because
+            OpenRaman spectrometer is initialized implicitly in the Acquisition process.
+            """
             self.spectrometer_device = SpectrometerDeviceManager().initialize(
                 configprofile.spectrometer
             )
@@ -136,13 +138,15 @@ class AcquisitionManager:
 
         Args:
             image (np.ndarray): The acquired image as a 2D numpy array.
+                For OpenRaman, this is the raw image data. For Wasatch, this is a
+                dummy image whose input is unused.
             metadata (dict): Image metadata from Micro-Manager.
         """
         print("process_image")
         fname = metadata.get("PositionName", metadata.get("Position", "DefaultPos"))
 
         if self.is_wasatch:
-            # Acquisition actually done here
+            # Acquisition for wasatch actually done here
             x, img_spectrum = self.spectrometer_device.get_spectrum()
         else:
             img_spectrum = image_to_spectrum(image)

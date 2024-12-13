@@ -6,8 +6,15 @@ from autoopenraman.utils import image_to_spectrum
 
 
 class OpenRamanSpectrometer(AbstractSpectrometerDevice):
+    """OpenRaman Spectrometer Device.
+
+    Attributes:
+        _core (Core): The pycro-manager Core object.
+        _studio (Studio): The pycro-manager Studio object.
+    """
+
     def __init__(self):
-        super().__init__(device_type="OpenRamanSpectrometer")
+        super().__init__()
 
     def set_integration_time_ms(self, integ_time_ms):
         self._core.set_exposure(integ_time_ms)
