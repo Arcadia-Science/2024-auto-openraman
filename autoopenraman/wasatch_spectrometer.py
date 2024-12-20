@@ -12,12 +12,8 @@ TEMPFILE = "spectrum.csv"  # for debugging
 
 
 class WasatchSpectrometer(AbstractSpectrometerDevice):
-    """Wasatch USB spectrometer device."""
-
-    def __init__(self, integ_time_ms, laser_power_mW):
+    def __init__(self):
         super().__init__()
-        self.integ_time_ms = integ_time_ms
-        self.laser_power_mW = laser_power_mW
 
     def connect(self):  # -> bool
         bus = WasatchBus(use_sim=False)
@@ -59,14 +55,12 @@ class WasatchSpectrometer(AbstractSpectrometerDevice):
         return True
 
     def set_integration_time_ms(self, integ_time_ms):
-        print(f"setting integration time to {self.integ_time_ms}ms")
-        self.integ_time_ms = integ_time_ms
-        self.fid.set_integration_time_ms(self.integ_time_ms)
+        print(f"setting integration time to {integ_time_ms}ms")
+        self.fid.set_integration_time_ms(integ_time_ms)
 
     def set_laser_power_mW(self, laser_power_mW):
-        print(f"setting laser power to {self.laser_power_mW}mW")
-        self.laser_power_mW = laser_power_mW
-        self.fid.set_laser_power_mW(self.laser_power_mW)
+        print(f"setting laser power to {laser_power_mW}mW")
+        self.fid.set_laser_power_mW(laser_power_mW)
 
     def laser_on(self):
         print("Enabling laser")
@@ -89,4 +83,4 @@ class WasatchSpectrometer(AbstractSpectrometerDevice):
             with open(TEMPFILE, "w") as outfile:
                 outfile.write("\n".join([f"{x:0.2f}" for x in spectrum]))
 
-            return self.settings.wavenumbers, np.asarray(spectrum)
+            return np.asarray(self.settings.wavenumbers), np.asarray(spectrum)

@@ -159,7 +159,7 @@ class AcquisitionManager:
             np.mean(self.spectrum_list, axis=0) if len(self.spectrum_list) > 0 else img_spectrum
         )
         self.line.set_data(x, running_avg)
-        self.ax.set_xlim(0, len(img_spectrum))
+        self.ax.set_xlim([x.min(), x.max()])
         self.ax.set_ylim(np.min(running_avg), np.max(running_avg))
         self.ax.set_title(fname)
         self.f.canvas.draw()
