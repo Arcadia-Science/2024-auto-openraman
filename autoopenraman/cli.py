@@ -8,15 +8,14 @@ from PyQt5.QtWidgets import QApplication
 from autoopenraman import configprofile
 from autoopenraman.acq import AcquisitionManager
 from autoopenraman.live import LiveModeManager
-from autoopenraman.plot import SpectrumPlotter
 
 
 @click.group()
 def cli():
     """Aquisition and analysis with AutoOpenRaman.
 
-    Use this to view data without saving, acquire over time/positions, and plot saved data.
-     Make sure Micro-Manager is running before executing!"""
+    Use this to start the acquisition or live mode.
+    Make sure Micro-Manager is running before executing!"""
     pass
 
 
@@ -105,12 +104,6 @@ def acq(position_file, n_averages, exp_dir, shutter, randomize_stage_positions):
     help="Path to a CSV file or a directory of CSV files.",
     required=True,
 )
-def plot(file_or_dir):
-    """Plot spectrum of collected data (file or directory)"""
-    click.echo("Plot mode")
-    SpectrumPlotter(file_or_dir).run()
-
-
 def main():
     cli()
 
