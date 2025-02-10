@@ -96,14 +96,6 @@ def acq(position_file, n_averages, exp_dir, shutter, randomize_stage_positions):
     ).run_acquisition()
 
 
-@cli.command()
-@click.option(
-    "-f",
-    "--file-or-dir",
-    type=click.Path(exists=True),
-    help="Path to a CSV file or a directory of CSV files.",
-    required=True,
-)
 def main():
     cli()
 
