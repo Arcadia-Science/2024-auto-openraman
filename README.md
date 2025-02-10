@@ -7,8 +7,15 @@ This package uses Micro-Manager and Pycro-Manager to interface with the OpenRama
 
 ## Installation
 
+First, make sure you have [poetry](https://python-poetry.org/docs/#installing-with-pipx) installed.
+
+Then, clone the repository and install the package:
 ```bash
-pip install autoopenraman
+git clone https://github.com/Arcadia-Science/2024-auto-openraman
+conda create -n autoopenraman-dev python=3.12
+conda activate autoopenraman-test
+poetry install --no-root --with dev,docs,build
+pip install -e .
 ```
 
 ## Usage
