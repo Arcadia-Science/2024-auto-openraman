@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pycromanager import Acquisition, Core, multi_d_acquisition_events
 
-from autoopenraman import configprofile
+from autoopenraman import config_profile
 from autoopenraman.utils import extract_stage_positions, image_to_spectrum, write_spectrum
 
 
@@ -56,7 +56,7 @@ class AcquisitionManager:
 
         if self.shutter:
             self.core = Core()
-            shutter_name = configprofile.shutter_name
+            shutter_name = config_profile.shutter_name
 
             try:
                 self.core.set_shutter_device(shutter_name)
@@ -66,32 +66,32 @@ class AcquisitionManager:
             self.core.set_auto_shutter(False)
 
             # close shutter
-            self._set_shutter_open_safe(open=False)
+            self._set_shutter_open_safe(is_open=False)
 
-    def _set_shutter_open_safe(self, open: bool) -> None:
+    def _set_shutter_open_safe(self, is_open: bool) -> None:
         """Set the shutter open safely.
 
         Checks shutter status before setting it and raises an error if it cannot be set.
 
         Args:
-            open (bool): True to open the shutter, False to close it.
+            is_open (bool): True to open the shutter, False to close it.
         """
 
         # also select the right shutter here!
 
         # if the shutter is already in the desired state, do nothing
-        if self.core.get_shutter_open() == open:
-            print(f"Shutter is already {'open' if open else 'closed'}")
+        if self.core.get_shutter_open() == is_open:
+            print(f"Shutter is already {'open' if is_open else 'closed'}")
             return
 
         # if the shutter is not in the desired state, try to set it
-        self.core.set_shutter_open(open)
+        self.core.set_shutter_open(is_open)
 
         # if the shutter is still not in the desired state, raise an error
-        if self.core.get_shutter_open() != open:
-            raise ValueError(f"Shutter could not be set to {'open' if open else 'closed'}")
+        if self.core.get_shutter_open() != is_open:
+            raise ValueError(f"Shutter could not be set to {'open' if is_open else 'closed'}")
 
-        print(f"Shutter {'opened' if open else 'closed'}")
+        print(f"Shutter {'opened' if is_open else 'closed'}")
 
     def _save_metadata(self, _filename: str, _metadata: dict) -> None:
         """Save the metadata to a JSON file.
@@ -163,7 +163,7 @@ class AcquisitionManager:
 
                 if self.shutter and (event["axes"]["time"] == 0):
                     # open shutter before first image in timeseries
-                    self._set_shutter_open_safe(open=True)
+                    self._set_shutter_open_safe(is_open=True)
 
                 image, metadata = future.await_image_saved(
                     event["axes"], return_image=True, return_metadata=True
@@ -172,6 +172,6 @@ class AcquisitionManager:
 
                 if self.shutter and (event["axes"]["time"] == self.n_averages - 1):
                     # close shutter after last image in timeseries
-                    self._set_shutter_open_safe(open=False)
+                    self._set_shutter_open_safe(is_open=False)
 
         print(f"Time elapsed: {time.time() - start:.2f} s")

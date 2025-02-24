@@ -46,7 +46,7 @@ cp .sample_autoopenraman_profile.yml ~/.config/autoopenraman/profile.yml
 On Windows:
 
 ```bash
-copy .sample_autoopenraman_profile.yml %APPDATA%\autoopenraman\profile.yml
+copy .sample_autoopenraman_profile.yml %USERPROFILE%\autoopenraman\profile.yml
 ```
 
 Download the latest version of [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) compatible with your OS. The package was built around `Micro-Manager 2.0.3-20241016` but should work with subsequent nightly builds.
