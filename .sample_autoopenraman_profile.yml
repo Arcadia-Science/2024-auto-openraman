@@ -1,0 +1,11 @@
+environment: testing
+
+deployment:
+  # save_dir: /dir/to/default/data/dir
+
+  shutter_name: 'deployment_shutter'
+
+testing:
+  save_dir: testdata/
+
+  shutter_name: 'White Light Shutter'

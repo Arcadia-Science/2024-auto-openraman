@@ -1,41 +1,51 @@
 import json
 import time
 from pathlib import Path
-from typing import Iterable, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pycromanager import Acquisition, multi_d_acquisition_events
+from pycromanager import Acquisition, Core, multi_d_acquisition_events
 
-from autoopenraman.utils import image_to_spectrum, write_spectrum
+from autoopenraman import config_profile
+from autoopenraman.utils import extract_stage_positions, image_to_spectrum, write_spectrum
 
 
 class AcquisitionManager:
     def __init__(
         self,
         n_averages: int = 1,
-        save_dir: Path = Path("data/"),
-        xy_positions: Optional[Iterable[tuple[float, float]]] = None,
-        labels: Optional[Iterable[str]] = None,
+        exp_path: Path = Path("data/"),
+        position_file: Path | None = None,
+        shutter: bool = False,
+        randomize_stage_positions: bool = False,
     ):
         """Initialize the AcquisitionManager.
 
         Args:
             n_averages (int): The number of spectra to average for each acquisition.
                 The default is 1.
-            save_dir (Path): The directory to save the spectra. The default is 'data/'.
-            xy_positions (Iterable): The XY positions to acquire from.
-                The default is None (single position).
-            labels (Iterable[str]): The labels for each position.
-                The default is None (single position).
+            exp_path (Path): The full path to save the spectra. The default is 'data/'.
+            position_file (Path | None): The path to the JSON file containing the stage positions.
+                If none, the stage positions are not used. The default is None.
+            shutter (bool): If True, find the shutter device in MM (defined in profile)
+                and close it between positions. The default is False (use auto-shutter).
+            randomize_stage_positions (bool): If True, the order of the positions will be
+                randomized.
         """
-        self.n_averages = n_averages
-        self.save_dir = Path(save_dir)
-        self.xy_positions = xy_positions
 
-        if xy_positions is not None:
-            self.n_positions = len(self.xy_positions)
-        self.labels = labels
+        self.n_averages = n_averages
+        self.exp_path = Path(exp_path)
+        self.position_file = position_file
+        self.shutter = shutter
+
+        if position_file is not None:
+            self.xy_positions, self.labels = extract_stage_positions(
+                position_file, randomize_stage_positions
+            )
+        else:
+            self.xy_positions = None
+            self.labels = None
+
         self.spectrum_list = []
 
         self.f, self.ax = plt.subplots()
@@ -43,6 +53,61 @@ class AcquisitionManager:
         (self.line,) = self.ax.plot(self.x, self.y)
         self.ax.set_xlabel("Pixels")
         self.ax.set_ylabel("Intensity")
+
+        if self.shutter:
+            self.core = Core()
+            shutter_name = config_profile.shutter_name
+
+            try:
+                self.core.set_shutter_device(shutter_name)
+            except ValueError as e:
+                raise ValueError(f"Shutter device {shutter_name} not found in Micro-Manager") from e
+
+            self.core.set_auto_shutter(False)
+
+            # close shutter
+            self._set_shutter_open_safe(is_open=False)
+
+    def _set_shutter_open_safe(self, is_open: bool) -> None:
+        """Set the shutter open safely.
+
+        Checks shutter status before setting it and raises an error if it cannot be set.
+
+        Args:
+            is_open (bool): True to open the shutter, False to close it.
+        """
+
+        # also select the right shutter here!
+
+        # if the shutter is already in the desired state, do nothing
+        if self.core.get_shutter_open() == is_open:
+            print(f"Shutter is already {'open' if is_open else 'closed'}")
+            return
+
+        # if the shutter is not in the desired state, try to set it
+        self.core.set_shutter_open(is_open)
+
+        # if the shutter is still not in the desired state, raise an error
+        if self.core.get_shutter_open() != is_open:
+            raise ValueError(f"Shutter could not be set to {'open' if is_open else 'closed'}")
+
+        print(f"Shutter {'opened' if is_open else 'closed'}")
+
+    def _save_metadata(self, _filename: str, _metadata: dict) -> None:
+        """Save the metadata to a JSON file.
+
+        Args:
+            _filename (str): Metadata filename.
+            metadata (dict): The metadata to save.
+        """
+
+        # add the acquisition parameters to the metadata
+        _metadata["Number of averages"] = self.n_averages
+        _metadata["Stage position file"] = self.position_file
+        _metadata["DateTime"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+        with open(self.exp_path / (_filename + ".json"), "w") as f:
+            json.dump(_metadata, f)
 
     def process_image(self, image: np.ndarray, metadata: dict) -> None:
         """Process the acquired image.
@@ -69,12 +134,11 @@ class AcquisitionManager:
         self.f.canvas.draw()
         self.f.canvas.flush_events()
 
-        # if this is the final spectrum in the average, save the average spectrum
+        # if this is the final spectrum in the average, save average spectrum and metadata
         if len(self.spectrum_list) == self.n_averages:
-            write_spectrum(self.save_dir / (fname + ".csv"), x, running_avg)
+            write_spectrum(self.exp_path / (fname + ".csv"), x, running_avg)
 
-            with open(self.save_dir / (fname + ".json"), "w") as f:
-                json.dump(metadata, f)
+            self._save_metadata(fname, metadata)
 
             self.spectrum_list = []
 
@@ -97,9 +161,17 @@ class AcquisitionManager:
             for _, event in enumerate(events):
                 future = acq.acquire(event)
 
+                if self.shutter and (event["axes"]["time"] == 0):
+                    # open shutter before first image in timeseries
+                    self._set_shutter_open_safe(is_open=True)
+
                 image, metadata = future.await_image_saved(
                     event["axes"], return_image=True, return_metadata=True
                 )
                 self.process_image(image, metadata)
+
+                if self.shutter and (event["axes"]["time"] == self.n_averages - 1):
+                    # close shutter after last image in timeseries
+                    self._set_shutter_open_safe(is_open=False)
 
         print(f"Time elapsed: {time.time() - start:.2f} s")
