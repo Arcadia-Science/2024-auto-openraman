@@ -137,14 +137,19 @@ class AutoOpenRamanGUI(QMainWindow):
 
         # Create the plot widget
         self.plot_widget = PlotWidget()
-        self.plot = self.plot_widget.plot()
-        self.plot_widget.setTitle("Spectrum")
         self.plot_widget.setLabel("left", "Intensity")
         self.plot_widget.setLabel("bottom", "Pixels")
+
+        # Initialize the main plot line (colors will be set in reset_plot_area)
+        self.plot = self.plot_widget.plot()
+
         plot_layout.addWidget(self.plot_widget)
 
         # Add the plot container to the main layout
         self.main_layout.addWidget(plot_container)
+
+        # Set initial plot state for live mode (default)
+        self.reset_plot_area("live")
 
     def create_common_controls(self):
         """Create controls that are common to both live and acquisition modes"""
@@ -166,18 +171,52 @@ class AutoOpenRamanGUI(QMainWindow):
         self.kernel_size_input = QLineEdit("3")
         controls_layout.addWidget(self.kernel_size_input)
 
+        # Show Current Measurement Checkbox (for acquisition mode)
+        self.show_current_check = QCheckBox("Show Current Measurement")
+        self.show_current_check.setChecked(True)
+        self.show_current_check.stateChanged.connect(self.toggle_show_current)
+        controls_layout.addWidget(self.show_current_check)
+
         # Add the common controls to the main layout
         self.main_layout.addWidget(common_controls)
+
+    def reset_plot_area(self, mode):
+        """Reset the plot area when switching modes"""
+        # Clear any existing plots
+        self.plot_widget.clear()
+
+        # Create the main plot with appropriate color for the mode
+        if mode == "live":
+            self.plot = self.plot_widget.plot(pen="b")
+            self.plot_widget.setTitle("Live Mode - Spectrum")
+
+            # Hide current spectrum plot if it exists
+            if hasattr(self, "current_spectrum_plot"):
+                self.current_spectrum_plot = None
+
+        elif mode == "acquisition":
+            # Blue plot for the running average
+            self.plot = self.plot_widget.plot(pen="b")
+
+            # Red plot for current measurement (if enabled)
+            self.current_spectrum_plot = self.plot_widget.plot(pen="r")
+            self.current_spectrum_plot.setVisible(self.show_current_check.isChecked())
+
+            self.plot_widget.setTitle("Acquisition Mode - Ready")
 
     def switch_mode(self, index):
         """Switch between different modes (Live or Acquisition)"""
         # Update button states
         if index == 0:
+            # Switching to Live mode
             self.live_mode_btn.setChecked(True)
             self.acq_mode_btn.setChecked(False)
+            self.reset_plot_area("live")
         else:
+            # Switching to Acquisition mode
             self.live_mode_btn.setChecked(False)
             self.acq_mode_btn.setChecked(True)
+            self.reset_plot_area("acquisition")
 
         # Stop any ongoing acquisition in live mode
         if self.worker and index == 1:
@@ -280,6 +319,12 @@ class AutoOpenRamanGUI(QMainWindow):
         """Toggle X-axis reversal."""
         self.reverse_x = self.reverse_x_check.isChecked()
 
+    def toggle_show_current(self):
+        """Toggle visibility of current measurement in acquisition mode."""
+        show_current = self.show_current_check.isChecked()
+        if hasattr(self, "current_spectrum_plot"):
+            self.current_spectrum_plot.setVisible(show_current)
+
     def start_live_acquisition(self):
         """Start the worker thread for live acquisition."""
         print("Starting live acquisition...")
@@ -302,7 +347,15 @@ class AutoOpenRamanGUI(QMainWindow):
         """Update the live plot with new spectrum data."""
         processed_spectrum = self.process_spectrum(spectrum)
         x_data = np.linspace(0, len(processed_spectrum), len(processed_spectrum))
+
+        # Set a consistent pen color for live data (blue)
+        self.plot.setPen("b")
+
+        # Update the plot with processed data
         self.plot.setData(x_data, processed_spectrum)
+
+        # Update title to indicate we're in live mode
+        self.plot_widget.setTitle("Live Mode - Spectrum")
 
     def process_spectrum(self, spectrum):
         """Apply common processing to spectrum data based on filter settings."""
@@ -399,17 +452,44 @@ class AutoOpenRamanGUI(QMainWindow):
         self.acquisition_worker.spectrum_ready.connect(self.update_acq_plot)
         self.acquisition_thread.start()
 
-    def update_acq_plot(self, x, y, title):
-        """Update the acquisition plot"""
-        # Get width of the spectrum for creating x values
-        processed_y = self.process_spectrum(y)
+    def update_acq_plot(self, x, current_spectrum, running_avg, title):
+        """Update the acquisition plot showing both current spectrum and running average"""
+        # Process spectra
+        processed_current = self.process_spectrum(current_spectrum)
+        processed_avg = self.process_spectrum(running_avg)
 
-        # Create new x values if needed (if the length changed due to processing)
-        if len(x) != len(processed_y):
-            x = np.linspace(0, len(processed_y), len(processed_y))
+        # Create new x values if needed
+        if len(x) != len(processed_avg):
+            x = np.linspace(0, len(processed_avg), len(processed_avg))
 
-        self.plot.setData(x, processed_y)
-        self.plot_widget.setTitle(title)
+        # Update running average plot (blue)
+        self.plot.setData(x, processed_avg)
+
+        # Check if we need to recreate the current spectrum plot
+        if self.show_current_check.isChecked():
+            # Create the current spectrum plot if it doesn't exist or was reset
+            if not hasattr(self, "current_spectrum_plot") or self.current_spectrum_plot is None:
+                self.current_spectrum_plot = self.plot_widget.plot(pen="r")
+
+            # Update the current spectrum data
+            self.current_spectrum_plot.setData(x, processed_current)
+            self.current_spectrum_plot.setVisible(True)
+
+            # Title with both plots indicated
+            full_title = f"{title} (Blue=Running Average, Red=Current Measurement)"
+        else:
+            # If we have a current spectrum plot but it's disabled, hide it
+            if hasattr(self, "current_spectrum_plot") and self.current_spectrum_plot is not None:
+                self.current_spectrum_plot.setVisible(False)
+
+            # Title with only average indicated
+            full_title = f"{title} (Running Average)"
+
+        # Update the plot title
+        self.plot_widget.setTitle(full_title)
+
+        # Make sure the GUI refreshes to show the new data immediately
+        QApplication.processEvents()
 
     def closeEvent(self, event):
         """Handle window close event to stop worker thread."""
@@ -421,7 +501,8 @@ class AutoOpenRamanGUI(QMainWindow):
 # Worker for Acquisition Mode
 class AcquisitionWorker(QThread):
     finished = pyqtSignal()
-    spectrum_ready = pyqtSignal(object, object, str)  # x, y, title
+    spectrum_ready = pyqtSignal(object, object, object, str)
+    # x, current_spectrum, running_avg, title
 
     def __init__(
         self,
@@ -445,7 +526,11 @@ class AcquisitionWorker(QThread):
         self.kernel_size = kernel_size
         self.reverse_x = reverse_x
 
+        # List to store spectra for the current position
         self.spectrum_list = []
+
+        # Flag to control whether to show latest individual spectrum alongside the average
+        self.show_latest = True
 
         if position_file is not None:
             self.xy_positions, self.labels = extract_stage_positions(
@@ -507,21 +592,28 @@ class AcquisitionWorker(QThread):
         img_spectrum = image_to_spectrum(image)
 
         x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
+
+        # Add the new spectrum to our list
         self.spectrum_list.append(img_spectrum)
+        current_count = len(self.spectrum_list)
 
         # Calculate running average
-        running_avg = (
-            np.mean(self.spectrum_list, axis=0) if len(self.spectrum_list) > 0 else img_spectrum
-        )
+        running_avg = np.mean(self.spectrum_list, axis=0)
 
-        # Emit signal to update plot in main thread
-        title = f"Position: {fname} - Average {len(self.spectrum_list)}/{self.n_averages}"
-        self.spectrum_ready.emit(x, running_avg, title)
+        # Create a more detailed title showing acquisition progress
+        title = f"Position: {fname} - Spectrum {current_count}/{self.n_averages}"
 
-        # if this is the final spectrum in the average, save average spectrum and metadata
-        if len(self.spectrum_list) == self.n_averages:
+        # Emit both the current spectrum and the running average
+        # This allows the GUI to show both if desired
+        self.spectrum_ready.emit(x, img_spectrum, running_avg, title)
+
+        # If this was the final spectrum in the average, save data and reset for next position
+        if current_count == self.n_averages:
+            # Save the average spectrum and metadata
             write_spectrum(self.exp_path / (fname + ".csv"), x, running_avg)
             self._save_metadata(fname, metadata)
+
+            # Clear the spectrum list for the next position
             self.spectrum_list = []
 
     def run_acquisition(self) -> None:
