@@ -78,7 +78,13 @@ class AutoOpenRamanGUI(QMainWindow):
         # Create the mode selection buttons at the top
         self.create_mode_selector()
 
-        # Create stacked widget to hold different mode UIs
+        # Create the shared plot widget
+        self.create_shared_plot()
+
+        # Create the common controls (filtering, etc.)
+        self.create_common_controls()
+
+        # Create stacked widget to hold mode-specific UIs
         self.stacked_widget = QStackedWidget()
         self.main_layout.addWidget(self.stacked_widget)
 
@@ -123,6 +129,46 @@ class AutoOpenRamanGUI(QMainWindow):
 
         self.main_layout.addLayout(mode_layout)
 
+    def create_shared_plot(self):
+        """Create a single plot widget that will be shared between modes"""
+        # Create a container for the plot
+        plot_container = QGroupBox("Spectrum Display")
+        plot_layout = QVBoxLayout(plot_container)
+
+        # Create the plot widget
+        self.plot_widget = PlotWidget()
+        self.plot = self.plot_widget.plot()
+        self.plot_widget.setTitle("Spectrum")
+        self.plot_widget.setLabel("left", "Intensity")
+        self.plot_widget.setLabel("bottom", "Pixels")
+        plot_layout.addWidget(self.plot_widget)
+
+        # Add the plot container to the main layout
+        self.main_layout.addWidget(plot_container)
+
+    def create_common_controls(self):
+        """Create controls that are common to both live and acquisition modes"""
+        common_controls = QGroupBox("Spectrum Processing")
+        controls_layout = QHBoxLayout(common_controls)
+
+        # Reverse X Checkbox
+        self.reverse_x_check = QCheckBox("Reverse X")
+        self.reverse_x_check.stateChanged.connect(self.toggle_reverse_x)
+        controls_layout.addWidget(self.reverse_x_check)
+
+        # Median Filter Checkbox
+        self.median_filter_check = QCheckBox("Apply Median Filter")
+        self.median_filter_check.stateChanged.connect(self.toggle_median_filter)
+        controls_layout.addWidget(self.median_filter_check)
+
+        # Kernel Size Input
+        controls_layout.addWidget(QLabel("Kernel Size:"))
+        self.kernel_size_input = QLineEdit("3")
+        controls_layout.addWidget(self.kernel_size_input)
+
+        # Add the common controls to the main layout
+        self.main_layout.addWidget(common_controls)
+
     def switch_mode(self, index):
         """Switch between different modes (Live or Acquisition)"""
         # Update button states
@@ -145,29 +191,9 @@ class AutoOpenRamanGUI(QMainWindow):
         live_widget = QWidget()
         live_layout = QVBoxLayout(live_widget)
 
-        # Plot Widget
-        self.live_plot_widget = PlotWidget()
-        self.live_plot = self.live_plot_widget.plot()
-        live_layout.addWidget(self.live_plot_widget)
-
         # Controls Group
         controls_group = QGroupBox("Live Mode Controls")
         controls_layout = QHBoxLayout(controls_group)
-
-        # Reverse X Checkbox
-        self.reverse_x_check = QCheckBox("Reverse X")
-        self.reverse_x_check.stateChanged.connect(self.toggle_reverse_x)
-        controls_layout.addWidget(self.reverse_x_check)
-
-        # Median Filter Checkbox
-        self.median_filter_check = QCheckBox("Apply Median Filter")
-        self.median_filter_check.stateChanged.connect(self.toggle_median_filter)
-        controls_layout.addWidget(self.median_filter_check)
-
-        # Kernel Size Input
-        controls_layout.addWidget(QLabel("Kernel Size:"))
-        self.kernel_size_input = QLineEdit("3")
-        controls_layout.addWidget(self.kernel_size_input)
 
         # Start/Stop Button
         self.start_live_btn = QPushButton("Start Live")
@@ -187,11 +213,6 @@ class AutoOpenRamanGUI(QMainWindow):
         """Create the Acquisition Mode page"""
         acq_widget = QWidget()
         acq_layout = QVBoxLayout(acq_widget)
-
-        # Plot Widget for Acquisition Mode
-        self.acq_plot_widget = PlotWidget()
-        self.acq_plot = self.acq_plot_widget.plot()
-        acq_layout.addWidget(self.acq_plot_widget)
 
         # Settings Group
         settings_group = QGroupBox("Acquisition Settings")
@@ -279,19 +300,28 @@ class AutoOpenRamanGUI(QMainWindow):
 
     def update_live_plot(self, spectrum):
         """Update the live plot with new spectrum data."""
+        processed_spectrum = self.process_spectrum(spectrum)
+        x_data = np.linspace(0, len(processed_spectrum), len(processed_spectrum))
+        self.plot.setData(x_data, processed_spectrum)
+
+    def process_spectrum(self, spectrum):
+        """Apply common processing to spectrum data based on filter settings."""
+        processed_spectrum = spectrum.copy()
+
+        # Apply median filter if enabled
         if self.apply_median_filter:
             try:
                 kernel_size = int(self.kernel_size_input.text())
-                spectrum = medfilt(spectrum, kernel_size=kernel_size)
+                processed_spectrum = medfilt(processed_spectrum, kernel_size=kernel_size)
             except ValueError:
                 print("Invalid kernel size. Using default of 3.")
-                spectrum = medfilt(spectrum, kernel_size=3)
+                processed_spectrum = medfilt(processed_spectrum, kernel_size=3)
 
+        # Reverse X if enabled
         if self.reverse_x:
-            spectrum = spectrum[::-1]
+            processed_spectrum = processed_spectrum[::-1]
 
-        x_data = np.linspace(0, len(spectrum), len(spectrum))
-        self.live_plot.setData(x_data, spectrum)
+        return processed_spectrum
 
     # Acquisition Mode Functions
     def browse_position_file(self):
@@ -342,10 +372,25 @@ class AutoOpenRamanGUI(QMainWindow):
         # Disable controls during acquisition
         self.start_acq_btn.setEnabled(False)
 
+        # Get current filter settings
+        try:
+            kernel_size = int(self.kernel_size_input.text())
+        except ValueError:
+            kernel_size = 3
+            print("Invalid kernel size. Using default of 3.")
+
         # Run acquisition in a separate thread
         self.acquisition_thread = QThread()
         self.acquisition_worker = AcquisitionWorker(
-            n_averages, exp_path, position_file, shutter, randomize_stage_positions, self
+            n_averages,
+            exp_path,
+            position_file,
+            shutter,
+            randomize_stage_positions,
+            self.apply_median_filter,
+            kernel_size,
+            self.reverse_x,
+            self,
         )
         self.acquisition_worker.moveToThread(self.acquisition_thread)
         self.acquisition_thread.started.connect(self.acquisition_worker.run_acquisition)
@@ -356,8 +401,15 @@ class AutoOpenRamanGUI(QMainWindow):
 
     def update_acq_plot(self, x, y, title):
         """Update the acquisition plot"""
-        self.acq_plot.setData(x, y)
-        self.acq_plot_widget.setTitle(title)
+        # Get width of the spectrum for creating x values
+        processed_y = self.process_spectrum(y)
+
+        # Create new x values if needed (if the length changed due to processing)
+        if len(x) != len(processed_y):
+            x = np.linspace(0, len(processed_y), len(processed_y))
+
+        self.plot.setData(x, processed_y)
+        self.plot_widget.setTitle(title)
 
     def closeEvent(self, event):
         """Handle window close event to stop worker thread."""
@@ -372,7 +424,16 @@ class AcquisitionWorker(QThread):
     spectrum_ready = pyqtSignal(object, object, str)  # x, y, title
 
     def __init__(
-        self, n_averages, exp_path, position_file, shutter, randomize_stage_positions, parent=None
+        self,
+        n_averages,
+        exp_path,
+        position_file,
+        shutter,
+        randomize_stage_positions,
+        apply_median_filter=False,
+        kernel_size=3,
+        reverse_x=False,
+        parent=None,
     ):
         super().__init__(parent)
         self.n_averages = n_averages
@@ -380,6 +441,9 @@ class AcquisitionWorker(QThread):
         self.position_file = position_file
         self.shutter = shutter
         self.randomize_stage_positions = randomize_stage_positions
+        self.apply_median_filter = apply_median_filter
+        self.kernel_size = kernel_size
+        self.reverse_x = reverse_x
 
         self.spectrum_list = []
 
@@ -427,6 +491,12 @@ class AcquisitionWorker(QThread):
         _metadata["Number of averages"] = self.n_averages
         _metadata["Stage position file"] = self.position_file
         _metadata["DateTime"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+        # Add processing parameters
+        _metadata["Processing"] = {
+            "MedianFilter": {"Applied": self.apply_median_filter, "KernelSize": self.kernel_size},
+            "ReverseX": self.reverse_x,
+        }
 
         with open(self.exp_path / (_filename + ".json"), "w") as f:
             json.dump(_metadata, f)

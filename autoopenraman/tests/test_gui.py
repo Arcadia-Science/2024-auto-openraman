@@ -56,6 +56,10 @@ def test_gui_initialization(gui_window):
     # Check title and main components
     assert gui_window.windowTitle() == "AutoOpenRaman"
 
+    # Check that plot widget exists
+    assert gui_window.plot_widget is not None
+    assert gui_window.plot is not None
+
     # Check that both mode buttons exist
     assert gui_window.live_mode_btn is not None
     assert gui_window.acq_mode_btn is not None
@@ -84,19 +88,26 @@ def test_mode_switching(gui_window):
     assert gui_window.stacked_widget.currentIndex() == 0
 
 
-def test_live_mode_controls(gui_window):
-    """Test that live mode controls are properly initialized."""
-    # Check that live mode controls exist
+def test_common_controls(gui_window):
+    """Test that common controls are properly initialized."""
+    # Check that controls exist
     assert gui_window.reverse_x_check is not None
     assert gui_window.median_filter_check is not None
     assert gui_window.kernel_size_input is not None
-    assert gui_window.start_live_btn is not None
-    assert gui_window.stop_live_btn is not None
 
     # Check default state
     assert gui_window.reverse_x_check.isChecked() is False
     assert gui_window.median_filter_check.isChecked() is False
     assert gui_window.kernel_size_input.text() == "3"
+
+
+def test_live_mode_controls(gui_window):
+    """Test that live mode controls are properly initialized."""
+    # Check that live mode controls exist
+    assert gui_window.start_live_btn is not None
+    assert gui_window.stop_live_btn is not None
+
+    # Check default state
     assert gui_window.start_live_btn.isEnabled() is True
     assert gui_window.stop_live_btn.isEnabled() is False
 
@@ -122,3 +133,33 @@ def test_acquisition_mode_controls(gui_window):
     assert gui_window.n_averages_input.value() == 1
     assert gui_window.shutter_check.isChecked() is False
     assert gui_window.randomize_check.isChecked() is False
+
+
+def test_spectrum_processing(gui_window):
+    """Test that spectrum processing works correctly."""
+    import numpy as np
+
+    # Create a test spectrum
+    test_spectrum = np.ones(100)
+
+    # Test with default settings (no processing)
+    result = gui_window.process_spectrum(test_spectrum)
+    assert np.array_equal(result, test_spectrum)
+
+    # Test with reverse X enabled
+    gui_window.reverse_x = True
+    result = gui_window.process_spectrum(test_spectrum)
+    assert result[0] == test_spectrum[-1]
+    assert result[-1] == test_spectrum[0]
+
+    # Reset and test with median filter
+    gui_window.reverse_x = False
+    gui_window.apply_median_filter = True
+
+    # Create a test spectrum with a spike
+    test_spectrum_with_spike = np.ones(100)
+    test_spectrum_with_spike[50] = 100
+
+    result = gui_window.process_spectrum(test_spectrum_with_spike)
+    # The spike should be smoothed out by the median filter
+    assert result[50] < 100
