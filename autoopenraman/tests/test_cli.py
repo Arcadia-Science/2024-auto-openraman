@@ -28,6 +28,12 @@ def setup_environment(request):
     config_profile.init_profile(env_to_run)
 
 
+def test_gui_command(runner):
+    result = runner.invoke(cli, ["gui", "--debug"])
+    assert result.exit_code == 0
+    assert "Starting AutoOpenRaman GUI" in result.output
+
+
 def test_live_command(runner):
     result = runner.invoke(cli, ["live", "--debug"])
     assert result.exit_code == 0

@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QApplication
 
 from autoopenraman import config_profile
 from autoopenraman.acq import AcquisitionManager
+from autoopenraman.gui import AutoOpenRamanGUI
 from autoopenraman.live import LiveModeManager
 
 
@@ -26,9 +27,29 @@ def cli():
     is_flag=True,
     help="Debug flag (used for testing): if set, will only run for a few seconds and quit",
 )
+def gui(debug):
+    """Start the unified GUI with both Live and Acquisition modes"""
+    click.echo("Starting AutoOpenRaman GUI")
+    app = QApplication(sys.argv)
+    window = AutoOpenRamanGUI(debug)
+    window.show()
+
+    if debug:
+        QTimer.singleShot(5000, app.quit)  # Run for 5 seconds and then quit
+
+    sys.exit(app.exec_())
+
+
+@cli.command()
+@click.option(
+    "-d",
+    "--debug",
+    is_flag=True,
+    help="Debug flag (used for testing): if set, will only run for a few seconds and quit",
+)
 def live(debug):
-    """Start live mode (GUI)"""
-    click.echo("Live mode")
+    """Start live mode (Original GUI)"""
+    click.echo("Live mode (legacy)")
     app = QApplication(sys.argv)
     window = LiveModeManager(debug)
     window.show()
@@ -71,7 +92,7 @@ def live(debug):
 )
 def acq(position_file, n_averages, exp_dir, shutter, randomize_stage_positions):
     """Start acquisition mode (No GUI). Set the parameters of acquisition"""
-    click.echo("Acquisition mode")
+    click.echo("Acquisition mode (legacy)")
 
     exp_path = Path(config_profile.save_dir) / exp_dir
 
@@ -97,8 +118,12 @@ def acq(position_file, n_averages, exp_dir, shutter, randomize_stage_positions):
 
 
 def main():
-    cli()
+    # By default, run the unified GUI
+    if len(sys.argv) == 1:
+        gui(False)
+    else:
+        cli()
 
 
 if __name__ == "__main__":
-    cli()
+    main()

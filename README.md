@@ -21,14 +21,28 @@ pip install -e .
 
 ## Usage
 
-After installation, the package can be used with the command-line interface. The package provides a command-line interface with the following commands:
+After installation, the package can be used with the command-line interface. The package provides a unified GUI that combines both live and acquisition modes, as well as legacy commands for backward compatibility:
 
-- `autoopenraman live`: Acquisition in live mode
+### Unified GUI
+
+- `autoopenraman`: Launches the unified GUI with both live and acquisition modes
+- `autoopenraman gui`: Same as above, explicitly launching the unified GUI
+
+The unified GUI provides a tabbed interface where you can switch between:
+- **Live Mode**: Real-time spectrum visualization with filtering options
+- **Acquisition Mode**: Configure and run automated acquisitions across multiple positions
+
+### Legacy CLI Commands
+
+The following commands are maintained for backward compatibility:
+
+- `autoopenraman live`: Acquisition in live mode (original GUI)
 - `autoopenraman acq`: Acquisition across multiple times/positions
 
 For details on running, see the help message for each command:
 
 ```bash
+autoopenraman --help
 autoopenraman live --help
 autoopenraman acq --help
 ```
