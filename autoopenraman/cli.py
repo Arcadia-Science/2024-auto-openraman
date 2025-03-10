@@ -80,6 +80,18 @@ def live(debug):
     default="data/",
 )
 @click.option(
+    "--num_time_points",
+    type=int,
+    help="Number of time points in the acquisition. If None, only one acquisition is done",
+    default=None,
+)
+@click.option(
+    "--time_interval_s",
+    type=float,
+    help="The time interval between acquisitions in seconds. The default is 0.",
+    default=0,
+)
+@click.option(
     "--shutter",
     is_flag=True,
     help="If set, will close the shutter between acquisitions (if available)",
@@ -90,7 +102,15 @@ def live(debug):
     is_flag=True,
     help="If set, the order of the stage positions will be randomized",
 )
-def acq(position_file, n_averages, exp_dir, shutter, randomize_stage_positions):
+def acq(
+    position_file,
+    n_averages,
+    exp_dir,
+    shutter,
+    num_time_points,
+    time_interval_s,
+    randomize_stage_positions,
+):
     """Start acquisition mode (No GUI). Set the parameters of acquisition"""
     click.echo("Acquisition mode (legacy)")
 
@@ -113,7 +133,13 @@ def acq(position_file, n_averages, exp_dir, shutter, randomize_stage_positions):
     elif randomize_stage_positions:
         raise ValueError("Randomizing stage positions requires a position file (--position-file).")
     AcquisitionManager(
-        n_averages, exp_path, position_file, shutter, randomize_stage_positions
+        n_averages,
+        exp_path,
+        position_file,
+        shutter,
+        num_time_points,
+        time_interval_s,
+        randomize_stage_positions,
     ).run_acquisition()
 
 

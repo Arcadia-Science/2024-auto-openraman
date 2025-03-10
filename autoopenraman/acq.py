@@ -1,5 +1,6 @@
 import json
 import time
+from copy import deepcopy
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -17,6 +18,8 @@ class AcquisitionManager:
         exp_path: Path = Path("data/"),
         position_file: Path | None = None,
         shutter: bool = False,
+        num_time_points: int | None = None,
+        time_interval_s: float = 0,
         randomize_stage_positions: bool = False,
     ):
         """Initialize the AcquisitionManager.
@@ -29,6 +32,10 @@ class AcquisitionManager:
                 If none, the stage positions are not used. The default is None.
             shutter (bool): If True, find the shutter device in MM (defined in profile)
                 and close it between positions. The default is False (use auto-shutter).
+            num_time_points (int | None): The number of time points in the acquisition.
+                If None, only one acquisition is done. The default is None.
+            time_interval_s (float): The time interval between acquisitions in seconds.
+                The default is 0.
             randomize_stage_positions (bool): If True, the order of the positions will be
                 randomized.
         """
@@ -38,6 +45,14 @@ class AcquisitionManager:
         self.position_file = position_file
         self.shutter = shutter
 
+        if position_file is not None and time_interval_s != 0:
+            raise ValueError(
+                "A multi-position time series acquisition with delays between "
+                "acquisitions is not supported"
+            )
+
+        self.num_time_points = num_time_points
+        self.time_interval_s = time_interval_s
         if position_file is not None:
             self.xy_positions, self.labels = extract_stage_positions(
                 position_file, randomize_stage_positions
@@ -117,7 +132,12 @@ class AcquisitionManager:
             metadata (dict): Image metadata from Micro-Manager.
         """
         print("process_image")
-        fname = metadata.get("PositionName", metadata.get("Position", "DefaultPos"))
+
+        position = metadata.get("Position", "DefaultPos")
+        axes = metadata.get("Axes", {})
+        time_point = axes.get("time", "DefaultTime")
+        fname = f"pos_{position}_time_{time_point}"
+
         img_spectrum = image_to_spectrum(image)
 
         x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
@@ -149,29 +169,48 @@ class AcquisitionManager:
         plt.show(block=False)
 
         with Acquisition(show_display=False) as acq:
-            events = multi_d_acquisition_events(
-                num_time_points=self.n_averages,
-                time_interval_s=0,
+            event_stack = multi_d_acquisition_events(
+                num_time_points=self.num_time_points,
                 xy_positions=self.xy_positions,
                 position_labels=self.labels,
                 order="pt",
             )
+            print("Event stack:")
+            print(event_stack)
+            events = []
+            for _event in event_stack:
+                for i in range(self.n_averages):
+                    __event = deepcopy(_event)
+                    __event["axes"]["avg_index"] = i
+                    events.append(__event)
+            print("Events:")
             print(events)
 
             for _, event in enumerate(events):
                 future = acq.acquire(event)
 
-                if self.shutter and (event["axes"]["time"] == 0):
-                    # open shutter before first image in timeseries
+                if self.shutter and (event["axes"]["avg_index"] == 0):
+                    # open shutter before first image series
                     self._set_shutter_open_safe(is_open=True)
 
+                print(f"Acquiring image {event["axes"]["avg_index"] + 1}/{self.n_averages}")
                 image, metadata = future.await_image_saved(
-                    event["axes"], return_image=True, return_metadata=True
+                    None, return_image=True, return_metadata=True
                 )
                 self.process_image(image, metadata)
 
-                if self.shutter and (event["axes"]["time"] == self.n_averages - 1):
-                    # close shutter after last image in timeseries
+                """
+                Because time_interval_s does not work properly in PycroManager
+                (see https://github.com/micro-manager/pycro-manager/issues/733), we manually
+                implement the delay here. There are likely issues with this, e.g. there should be no
+                 delay when moving to a new position, but this does a basic timelapse
+                """
+                is_final_in_average = event["axes"]["avg_index"] == self.n_averages - 1
+                if (self.time_interval_s > 0) and is_final_in_average:
+                    time.sleep(self.time_interval_s)
+
+                if self.shutter and is_final_in_average:
+                    # close shutter after last image in series
                     self._set_shutter_open_safe(is_open=False)
 
         print(f"Time elapsed: {time.time() - start:.2f} s")
