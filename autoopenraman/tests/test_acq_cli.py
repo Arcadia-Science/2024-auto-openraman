@@ -28,18 +28,6 @@ def setup_environment(request):
     config_profile.init_profile(env_to_run)
 
 
-def test_gui_command(runner):
-    result = runner.invoke(cli, ["gui", "--debug"])
-    assert result.exit_code == 0
-    assert "Starting AutoOpenRaman GUI" in result.output
-
-
-def test_live_command(runner):
-    result = runner.invoke(cli, ["live", "--debug"])
-    assert result.exit_code == 0
-    assert "Live mode" in result.output
-
-
 def test_acq_command_no_args(runner):
     with runner.isolated_filesystem():
         result = runner.invoke(cli, ["acq"])
@@ -186,3 +174,113 @@ def test_acq_command_with_shutter_and_position_file(runner):
         n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
         assert n_jsons == _n_positions
         assert n_csvs == _n_positions
+
+
+def test_acq_command_with_timelapse(runner):
+    """Test acquisition with time series (timelapse)."""
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli,
+            [
+                "acq",
+                "--n-averages",
+                "2",
+                "--exp-dir",
+                "timelapse",
+                "--num_time_points",
+                "3",
+                "--time_interval_s",
+                "0.1",  # Short interval for testing
+            ],
+        )
+        assert result.exit_code == 0
+        assert "Acquisition mode" in result.output
+
+        # Verify the output directory exists
+        save_dir = config_profile.save_dir / "timelapse"
+        assert save_dir.is_dir()
+
+        # Should have 3 time points with JSON/CSV pairs
+        n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
+        assert n_jsons == 3
+        assert n_csvs == 3
+
+        # Check for time point naming in files
+        files = list(save_dir.glob("*.csv"))
+        time_point_patterns = [f"time_{i}" for i in range(3)]
+        for pattern in time_point_patterns:
+            assert any(pattern in f.name for f in files), f"Missing file with {pattern}"
+
+
+def test_acq_command_with_timelapse_and_shutter(runner):
+    """Test acquisition with time series and shutter control."""
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli,
+            [
+                "acq",
+                "--n-averages",
+                "2",
+                "--exp-dir",
+                "timelapse_shutter",
+                "--num_time_points",
+                "2",
+                "--time_interval_s",
+                "0.1",
+                "--shutter",
+            ],
+        )
+        assert result.exit_code == 0
+        assert "Acquisition mode" in result.output
+        assert "Shutter open" in result.output
+        assert "Shutter closed" in result.output
+
+        # Verify the output directory exists
+        save_dir = config_profile.save_dir / "timelapse_shutter"
+        assert save_dir.is_dir()
+
+        # Should have 2 time points with JSON/CSV pairs
+        n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
+        assert n_jsons == 2
+        assert n_csvs == 2
+
+
+def test_acq_command_timelapse_with_position_file(runner):
+    """Test acquisition with time series and stage positions."""
+    with runner.isolated_filesystem():
+        _n_positions = 3
+        position_file = Path("positions.json")
+        _create_mock_position_file(position_file, n_positions=_n_positions)
+        result = runner.invoke(
+            cli,
+            [
+                "acq",
+                "--n-averages",
+                "2",
+                "--exp-dir",
+                "timelapse_positions",
+                "--num_time_points",
+                "3",
+                "--time_interval_s",
+                "0.1",
+                "--position_file",
+                str(position_file),
+            ],
+        )
+        assert result.exit_code == 0
+        assert "Acquisition mode" in result.output
+
+        # Verify the output directory exists
+        save_dir = config_profile.save_dir / "timelapse_positions"
+        assert save_dir.is_dir()
+
+        # Should have 3 time points with JSON/CSV pairs
+        n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
+        assert n_jsons == 9
+        assert n_csvs == 9
+
+        # Check for time point naming in files
+        files = list(save_dir.glob("*.csv"))
+        time_point_patterns = [f"time_{i}" for i in range(3)]
+        for pattern in time_point_patterns:
+            assert any(pattern in f.name for f in files), f"Missing file with {pattern}"

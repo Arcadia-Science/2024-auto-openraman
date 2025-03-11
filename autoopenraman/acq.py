@@ -45,12 +45,6 @@ class AcquisitionManager:
         self.position_file = position_file
         self.shutter = shutter
 
-        if position_file is not None and time_interval_s != 0:
-            raise ValueError(
-                "A multi-position time series acquisition with delays between "
-                "acquisitions is not supported"
-            )
-
         self.num_time_points = num_time_points
         self.time_interval_s = time_interval_s
         if position_file is not None:
@@ -133,7 +127,7 @@ class AcquisitionManager:
         """
         print("process_image")
 
-        position = metadata.get("Position", "DefaultPos")
+        position = metadata.get("PositionName", metadata.get("Position", "DefaultPos"))
         axes = metadata.get("Axes", {})
         time_point = axes.get("time", "DefaultTime")
         fname = f"pos_{position}_time_{time_point}"
