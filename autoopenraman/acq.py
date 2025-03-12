@@ -1,14 +1,21 @@
 import json
+import sys
 import time
 from copy import deepcopy
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 from pycromanager import Acquisition, Core, multi_d_acquisition_events
+from PyQt5.QtWidgets import QApplication
+from pyqtgraph import PlotWidget
 
 from autoopenraman import config_profile
 from autoopenraman.utils import extract_stage_positions, image_to_spectrum, write_spectrum
+
+# Ensure there's a QApplication instance
+_app = QApplication.instance()
+if _app is None:
+    _app = QApplication(sys.argv)
 
 
 class AcquisitionManager:
@@ -21,6 +28,7 @@ class AcquisitionManager:
         num_time_points: int | None = None,
         time_interval_s: float = 0,
         randomize_stage_positions: bool = False,
+        headless: bool = False,  # Add headless mode for testing
     ):
         """Initialize the AcquisitionManager.
 
@@ -38,6 +46,8 @@ class AcquisitionManager:
                 The default is 0.
             randomize_stage_positions (bool): If True, the order of the positions will be
                 randomized.
+            headless (bool): If True, run without creating any GUI components.
+                Useful for testing. The default is False.
         """
 
         self.n_averages = n_averages
@@ -47,6 +57,8 @@ class AcquisitionManager:
 
         self.num_time_points = num_time_points
         self.time_interval_s = time_interval_s
+        self.headless = headless
+
         if position_file is not None:
             self.xy_positions, self.labels = extract_stage_positions(
                 position_file, randomize_stage_positions
@@ -57,11 +69,22 @@ class AcquisitionManager:
 
         self.spectrum_list = []
 
-        self.f, self.ax = plt.subplots()
-        self.x, self.y = [0], [0]  # dummy values to initialize the plot
-        (self.line,) = self.ax.plot(self.x, self.y)
-        self.ax.set_xlabel("Pixels")
-        self.ax.set_ylabel("Intensity")
+        # Create pyqtgraph plot widget only if not in headless mode
+        if not self.headless:
+            self.plot_widget = PlotWidget()
+            self.plot_widget.setWindowTitle("Acquisition Spectrum")
+            self.plot_widget.setLabel("left", "Intensity")
+            self.plot_widget.setLabel("bottom", "Pixels")
+            self.plot = self.plot_widget.plot(pen="b")  # Blue line for the plot
+            self.plot_widget.show()
+
+            # Initial dummy data
+            self.x, self.y = [0], [0]
+            self.plot.setData(self.x, self.y)
+        else:
+            # Dummy attributes for headless mode
+            self.plot_widget = None
+            self.plot = None
 
         if self.shutter:
             self.core = Core()
@@ -137,16 +160,25 @@ class AcquisitionManager:
         x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
         self.spectrum_list.append(img_spectrum)
 
-        # Update the plot
+        # Calculate running average
         running_avg = (
             np.mean(self.spectrum_list, axis=0) if len(self.spectrum_list) > 0 else img_spectrum
         )
-        self.line.set_data(x, running_avg)
-        self.ax.set_xlim(0, len(img_spectrum))
-        self.ax.set_ylim(np.min(running_avg), np.max(running_avg))
-        self.ax.set_title(fname)
-        self.f.canvas.draw()
-        self.f.canvas.flush_events()
+
+        # Update the plot only if not in headless mode
+        if not self.headless:
+            # Update the plot data
+            self.plot.setData(x, running_avg)
+
+            # Set axis ranges
+            self.plot_widget.setXRange(0, len(img_spectrum))
+            self.plot_widget.setYRange(np.min(running_avg), np.max(running_avg))
+
+            # Set title
+            self.plot_widget.setTitle(fname)
+
+            # Process events to update the UI
+            QApplication.processEvents()
 
         # if this is the final spectrum in the average, save average spectrum and metadata
         if len(self.spectrum_list) == self.n_averages:
@@ -160,7 +192,12 @@ class AcquisitionManager:
         """Run the acquisition."""
         start = time.time()
 
-        plt.show(block=False)
+        # Make sure the plot widget is visible if not in headless mode
+        if not self.headless and self.plot_widget:
+            self.plot_widget.show()
+
+            # Process events to ensure UI is updated
+            QApplication.processEvents()
 
         with Acquisition(show_display=False) as acq:
             event_stack = multi_d_acquisition_events(
@@ -207,4 +244,26 @@ class AcquisitionManager:
                     # close shutter after last image in series
                     self._set_shutter_open_safe(is_open=False)
 
-        print(f"Time elapsed: {time.time() - start:.2f} s")
+        elapsed_time = time.time() - start
+        print(f"Time elapsed: {elapsed_time:.2f} s")
+
+        # Keep processing events while plot is visible only in non-headless mode
+        if not self.headless and self.plot_widget and self._is_standalone():
+            print("Acquisition complete. Close the plot window to exit.")
+            while self.plot_widget.isVisible():
+                QApplication.processEvents()
+
+    def cleanup(self):
+        """Close the plot widget and clean up."""
+        if not self.headless and hasattr(self, "plot_widget") and self.plot_widget:
+            self.plot_widget.close()
+
+    # Try to determine if we're in a main script context or inside another application
+    def _is_standalone(self):
+        """Check if this is running as a standalone script (not in a larger application)."""
+        if self.headless:
+            return False
+
+        # Try to determine if we're in a main script context or inside another application
+        active_window = QApplication.instance().activeWindow()
+        return active_window is None or active_window == self.plot_widget

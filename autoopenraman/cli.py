@@ -102,6 +102,11 @@ def live(debug):
     is_flag=True,
     help="If set, the order of the stage positions will be randomized",
 )
+@click.option(
+    "--headless",
+    is_flag=True,
+    help="Run in headless mode (no GUI) - useful for testing",
+)
 def acq(
     position_file,
     n_averages,
@@ -110,6 +115,7 @@ def acq(
     num_time_points,
     time_interval_s,
     randomize_stage_positions,
+    headless,
 ):
     """Start acquisition mode (No GUI). Set the parameters of acquisition"""
     click.echo("Acquisition mode (legacy)")
@@ -132,7 +138,8 @@ def acq(
             raise FileNotFoundError(f"Stage position file not found: {position_file}")
     elif randomize_stage_positions:
         raise ValueError("Randomizing stage positions requires a position file (--position-file).")
-    AcquisitionManager(
+    # Create an instance, run it, and ensure cleanup
+    acq_manager = AcquisitionManager(
         n_averages,
         exp_path,
         position_file,
@@ -140,7 +147,13 @@ def acq(
         num_time_points,
         time_interval_s,
         randomize_stage_positions,
-    ).run_acquisition()
+        headless=headless or "pytest" in sys.modules,  # Auto-detect pytest environment
+    )
+
+    try:
+        acq_manager.run_acquisition()
+    finally:
+        acq_manager.cleanup()
 
 
 def main():
