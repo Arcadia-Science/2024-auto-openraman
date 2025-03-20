@@ -23,5 +23,5 @@ class SpectrometerDeviceManager:
             self.device = OpenRamanSpectrometer()
         else:
             raise ValueError(f"Unsupported device type: {device}")
-        print(f"Initialized {self.device.device_type}")
+        print(f"Initialized {device}")
         return self.device
