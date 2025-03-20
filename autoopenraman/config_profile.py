@@ -6,7 +6,11 @@ import yaml
 class AutoOpenRamanProfile:
     def __init__(self):
         # profile path is in the home dir of user
-        self._profile_path = Path.home() / ".autoopenraman_profile.yml"
+        self._profile_path = Path.home() / "autoopenraman" / "profile.yml"
+
+        # create profile dir if it does not exist
+        self._profile_path.parent.mkdir(parents=True, exist_ok=True)
+
         # load yaml file
         self._profile = self._load_profile_from_json()
 
@@ -32,16 +36,12 @@ class AutoOpenRamanProfile:
             raise ValueError(f"Environment {self.environment} not found in profile.")
 
         self.save_dir = self._profile[self.environment].get(
-            "save_dir", Path.home() / "autoopenraman_data"
+            "save_dir", Path.home() / "autoopenraman" / "data"
         )
         self.save_dir = Path(self.save_dir)
         self.save_dir.mkdir(parents=True, exist_ok=True)
 
         self.shutter_name = self._profile[self.environment].get("shutter_name", None)
-
-        self.spectrometer = self._profile[self.environment].get("spectrometer", None)
-        if self.spectrometer is None:
-            raise ValueError("Spectrometer not found in profile.")
 
         # additional settings should be added here e.g.
         # self.light_source = self._profile[self.environment].get('light_source', None)

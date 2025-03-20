@@ -132,9 +132,8 @@ class AcquisitionManager:
 
         # if using Wasatch, add the Wasatch-specific metadata
         if self.is_wasatch:
-            _metadata["Wasatch"] = {}
             _metadata["Wasatch"]["Wasatch integration time (ms)"] = (
-                self.spectrometer_device.get_integration_time_ms().data
+                self.spectrometer_device.get_integration_time_ms()
             )
             _metadata["Wasatch"]["Wasatch laser power (mW)"] = (
                 self.spectrometer_device.get_laser_power_mW()
@@ -216,7 +215,6 @@ class AcquisitionManager:
                         self._set_shutter_open_safe(open=False)
         except Exception as e:
             print(f"Error during acquisition: {e}\n Time elapsed: {time.time() - start:.2f} s")
-            raise e
         finally:
             if self.is_wasatch:
                 self.spectrometer_device.laser_off()
