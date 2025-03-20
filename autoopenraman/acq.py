@@ -130,6 +130,15 @@ class AcquisitionManager:
         _metadata["Stage position file"] = self.position_file
         _metadata["DateTime"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
+        # if using Wasatch, add the Wasatch-specific metadata
+        if self.is_wasatch:
+            _metadata["Wasatch"]["Wasatch integration time (ms)"] = (
+                self.spectrometer_device.get_integration_time_ms()
+            )
+            _metadata["Wasatch"]["Wasatch laser power (mW)"] = (
+                self.spectrometer_device.get_laser_power_mW()
+            )
+
         with open(self.exp_path / (_filename + ".json"), "w") as f:
             json.dump(_metadata, f)
 

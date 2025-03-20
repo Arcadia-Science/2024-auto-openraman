@@ -50,16 +50,24 @@ class WasatchSpectrometer(AbstractSpectrometerDevice):
             )
         )
 
+        self.current_power_mW = 0
         self.fid.set_laser_power_high_resolution(True)
 
         return True
+
+    def get_integration_time_ms(self):
+        return self.fid.get_integration_time_ms()
 
     def set_integration_time_ms(self, integ_time_ms):
         print(f"setting integration time to {integ_time_ms}ms")
         self.fid.set_integration_time_ms(integ_time_ms)
 
+    def get_laser_power_mW(self):
+        return self.current_power_mW
+
     def set_laser_power_mW(self, laser_power_mW):
         print(f"setting laser power to {laser_power_mW}mW")
+        self.current_power_mW = laser_power_mW
         self.fid.set_laser_power_mW(laser_power_mW)
 
     def laser_on(self):
