@@ -43,6 +43,16 @@ class AutoOpenRamanProfile:
 
         self.shutter_name = self._profile[self.environment].get("shutter_name", None)
 
+        self.spectrometer = self._profile[self.environment].get("spectrometer", None)
+        if self.spectrometer is None:
+            raise ValueError("spectrometer field not found in profile.")
+
+        self.simulate_spectrometer = self._profile[self.environment].get(
+            "simulate_spectrometer", None
+        )
+        if self.simulate_spectrometer is None:
+            raise ValueError("simulate_spectrometer field not found in profile.")
+
         # additional settings should be added here e.g.
         # self.light_source = self._profile[self.environment].get('light_source', None)
         print(f"Profile initialized: {self.environment} with save_dir: {self.save_dir}")

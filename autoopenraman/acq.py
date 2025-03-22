@@ -1,5 +1,6 @@
 import json
 import time
+import traceback
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -78,7 +79,8 @@ class AcquisitionManager:
             OpenRaman spectrometer is initialized implicitly in the Acquisition process.
             """
             self.spectrometer_device = SpectrometerDeviceManager().initialize(
-                configprofile.spectrometer
+                configprofile.spectrometer,
+                configprofile.simulate_spectrometer,
             )
             if not self.spectrometer_device.connect():
                 raise ValueError("Could not connect to spectrometer")
@@ -216,6 +218,7 @@ class AcquisitionManager:
                         # close shutter after last image in timeseries
                         self._set_shutter_open_safe(open=False)
         except Exception as e:
+            traceback.print_exc()
             print(f"Error during acquisition: {e}\n Time elapsed: {time.time() - start:.2f} s")
         finally:
             if self.is_wasatch:

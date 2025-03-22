@@ -1,6 +1,7 @@
 import time
 
 import numpy as np
+from wasatch.DeviceID import DeviceID
 from wasatch.RealUSBDevice import RealUSBDevice
 from wasatch.WasatchBus import WasatchBus
 from wasatch.WasatchDevice import WasatchDevice
@@ -12,26 +13,32 @@ TEMPFILE = "spectrum.csv"  # for debugging
 
 
 class WasatchSpectrometer(AbstractSpectrometerDevice):
-    def __init__(self):
+    def __init__(self, use_sim=False):
         super().__init__()
+        self.use_sim = use_sim
 
     def connect(self):  # -> bool
-        bus = WasatchBus(use_sim=False)
-        if not bus.device_ids:
-            print("No Wasatch USB spectrometers found.")
-            return False
+        if self.use_sim:
+            device_id = DeviceID(label="MOCK:WP-00887:WP-00887-mock.json")
+        else:
+            bus = WasatchBus()
+            device_id = bus.device_ids[0]
+            device_id.device_type = RealUSBDevice(device_id)
+            if not bus.device_ids:
+                print("No Wasatch USB spectrometers found.")
+                return False
 
-        device_id = bus.device_ids[0]
         print(f"connecting to {device_id}")
-        device_id.device_type = RealUSBDevice(device_id)
         device = WasatchDevice(device_id)
         ok = device.connect()
         if not ok:
             print("can't connect to %s", device_id)
             return False
 
-        # take convenience handles to SpectrometerSettings and FeatureIdentificationDevice
         self.settings = device.settings
+        # in sim mode, wavenumbers array not assigned, so use wavelength array
+        if self.use_sim:
+            self.settings.wavenumbers = np.array([1 / (x + 1) for x in self.settings.wavelengths])
         self.fid = device.hardware
         if self.settings.wavelengths is None:
             print("script requires Raman spectrometer")
@@ -56,7 +63,7 @@ class WasatchSpectrometer(AbstractSpectrometerDevice):
         return True
 
     def get_integration_time_ms(self):
-        return self.fid.get_integration_time_ms()
+        return self.fid.get_integration_time_ms().data
 
     def set_integration_time_ms(self, integ_time_ms):
         print(f"setting integration time to {integ_time_ms}ms")
