@@ -132,6 +132,8 @@ class AcquisitionManager:
 
         # if using Wasatch, add the Wasatch-specific metadata
         if self.is_wasatch:
+            _metadata["Wasatch"] = {}
+            _metadata["Wasatch"]["Model"] = self.spectrometer_device.settings.eeprom.model
             _metadata["Wasatch"]["Wasatch integration time (ms)"] = (
                 self.spectrometer_device.get_integration_time_ms()
             )
