@@ -8,14 +8,14 @@ from wasatch.WasatchDevice import WasatchDevice
 
 from autoopenraman.spectrometer_device import AbstractSpectrometerDevice
 
-LASER_WARMUP_SEC = 10
-TEMPFILE = "spectrum.csv"  # for debugging
+DEFAULT_LASER_WARMUP_SEC = 10
 
 
 class WasatchSpectrometer(AbstractSpectrometerDevice):
-    def __init__(self, use_sim=False):
+    def __init__(self, use_sim=False, laser_warmup_sec=DEFAULT_LASER_WARMUP_SEC):
         super().__init__()
         self.use_sim = use_sim
+        self.laser_warmup_sec = laser_warmup_sec
 
     def connect(self):  # -> bool
         if self.use_sim:
@@ -81,8 +81,8 @@ class WasatchSpectrometer(AbstractSpectrometerDevice):
         print("Enabling laser")
         self.fid.set_laser_enable(True)
 
-        print(f"Waiting {LASER_WARMUP_SEC}sec for laser to warmup (required for MML)")
-        time.sleep(LASER_WARMUP_SEC)
+        print(f"Waiting {self.laser_warmup_sec}sec for laser to warmup (required for MML)")
+        time.sleep(self.laser_warmup_sec)
 
     def laser_off(self):
         print("Disabling laser")
@@ -93,9 +93,5 @@ class WasatchSpectrometer(AbstractSpectrometerDevice):
         response = self.fid.get_line()
         if response and response.data:
             spectrum = response.data.spectrum
-
-            # debugging
-            with open(TEMPFILE, "w") as outfile:
-                outfile.write("\n".join([f"{x:0.2f}" for x in spectrum]))
 
             return np.asarray(self.settings.wavenumbers), np.asarray(spectrum)

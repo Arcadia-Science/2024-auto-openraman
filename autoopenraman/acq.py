@@ -22,6 +22,7 @@ class AcquisitionManager:
         randomize_stage_positions: bool = False,
         wasatch_integration_time_ms=None,
         wasatch_laser_power_mW=None,
+        wasatch_laser_warmup_sec=None,
     ):
         """Initialize the AcquisitionManager.
 
@@ -81,6 +82,7 @@ class AcquisitionManager:
             self.spectrometer_device = SpectrometerDeviceManager().initialize(
                 configprofile.spectrometer,
                 configprofile.simulate_spectrometer,
+                laser_warmup_sec=wasatch_laser_warmup_sec,
             )
             if not self.spectrometer_device.connect():
                 raise ValueError("Could not connect to spectrometer")
@@ -141,6 +143,9 @@ class AcquisitionManager:
             )
             _metadata["Wasatch"]["Wasatch laser power (mW)"] = (
                 self.spectrometer_device.get_laser_power_mW()
+            )
+            _metadata["Wasatch"]["Wasatch laser warmup time (sec)"] = (
+                self.spectrometer_device.laser_warmup_sec
             )
 
         with open(self.exp_path / (_filename + ".json"), "w") as f:

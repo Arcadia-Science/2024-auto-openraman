@@ -83,6 +83,12 @@ def live(debug):
     help="Laser power for Wasatch spectrometer (mW)",
     default=None,
 )
+@click.option(
+    "--wasatch-laser-warmup-sec",
+    type=int,
+    help="Laser warmup time for Wasatch spectrometer (seconds)",
+    default=10,
+)
 def acq(
     position_file,
     n_averages,
@@ -91,6 +97,7 @@ def acq(
     randomize_stage_positions,
     wasatch_integration_time_ms,
     wasatch_laser_power_mw,
+    wasatch_laser_warmup_sec,
 ):
     """Start acquisition mode (No GUI). Set the parameters of acquisition"""
     click.echo("Acquisition mode")
@@ -122,6 +129,7 @@ def acq(
         randomize_stage_positions,
         wasatch_integration_time_ms,
         wasatch_laser_power_mw,
+        wasatch_laser_warmup_sec,
     ).run_acquisition()
 
 
