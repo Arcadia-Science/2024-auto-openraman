@@ -74,19 +74,19 @@ def live(debug):
 @click.option(
     "--wasatch-integration-time-ms",
     type=int,
-    help="Integration time for Wasatch spectrometer (ms)",
-    default=None,
+    help="Integration time for Wasatch spectrometer (ms), default: 100",
+    default=100,
 )
 @click.option(
     "--wasatch-laser-power-mw",
     type=int,
-    help="Laser power for Wasatch spectrometer (mW)",
-    default=None,
+    help="Laser power for Wasatch spectrometer (mW), default: 10",
+    default=10,
 )
 @click.option(
     "--wasatch-laser-warmup-sec",
     type=int,
-    help="Laser warmup time for Wasatch spectrometer (seconds)",
+    help="Laser warmup time for Wasatch spectrometer (seconds), default 10",
     default=10,
 )
 def acq(
