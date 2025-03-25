@@ -58,7 +58,7 @@ def live(debug):
     type=click.Path(),
     help="Folder where spectra will be saved\
         (parent path defined in profile)",
-    default="data/",
+    default="",
 )
 @click.option(
     "--shutter",
@@ -86,7 +86,7 @@ def live(debug):
 @click.option(
     "--wasatch-laser-warmup-sec",
     type=int,
-    help="Laser warmup time for Wasatch spectrometer (seconds), default 10",
+    help="Laser warmup time for Wasatch spectrometer (seconds), default: 10",
     default=10,
 )
 def acq(

@@ -62,7 +62,7 @@ class LiveModeManager(QMainWindow):
 
         # Initialize spectrometer and connect
         self.spectrometer_device = SpectrometerDeviceManager().initialize(
-            configprofile.spectrometer
+            configprofile.spectrometer, use_sim=configprofile.simulate_spectrometer
         )
         if not self.spectrometer_device.connect():
             raise ValueError("Could not connect to spectrometer")
