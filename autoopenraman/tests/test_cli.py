@@ -29,6 +29,9 @@ def remove_temp_files():
             file.unlink()
         temp_dir.rmdir()
 
+    # remove temp position file
+    POSITIONS_FILE.unlink(missing_ok=True)
+
 
 @pytest.fixture
 def runner():
@@ -190,3 +193,87 @@ def test_acq_command_with_shutter_and_position_file(runner):
     n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
     assert n_jsons == _n_positions
     assert n_csvs == _n_positions
+
+
+def test_acq_with_wasatch_integration_time_ms(runner):
+    configprofile.spectrometer = "wasatch"
+    test_integration_time = 100
+    result = runner.invoke(
+        cli,
+        [
+            "acq",
+            "--n-averages",
+            "5",
+            "--exp-dir",
+            TEMP_EXP_DIR,
+            "--wasatch-integration-time-ms",
+            test_integration_time,
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Acquisition mode" in result.output
+
+    # Verify the output directory and files
+    save_dir = configprofile.save_dir / TEMP_EXP_DIR
+    assert save_dir.is_dir()
+
+    n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
+    assert n_jsons == 1
+    assert n_csvs == 1
+    assert f"setting integration time to {test_integration_time}ms" in result.output
+
+
+def test_acq_with_wasatch_laser_warmup_sec(runner):
+    configprofile.spectrometer = "wasatch"
+    test_laser_warmup = 10
+    result = runner.invoke(
+        cli,
+        [
+            "acq",
+            "--n-averages",
+            "5",
+            "--exp-dir",
+            TEMP_EXP_DIR,
+            "--wasatch-laser-warmup-sec",
+            test_laser_warmup,
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Acquisition mode" in result.output
+
+    # Verify the output directory and files
+    save_dir = configprofile.save_dir / TEMP_EXP_DIR
+    assert save_dir.is_dir()
+
+    n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
+    assert n_jsons == 1
+    assert n_csvs == 1
+    assert f"Waiting {test_laser_warmup}sec for laser to warmup" in result.output
+
+
+def test_acq_with_wasatch_laser_power_mw(runner):
+    configprofile.spectrometer = "wasatch"
+    test_laser_power = "10"
+    result = runner.invoke(
+        cli,
+        [
+            "acq",
+            "--n-averages",
+            "5",
+            "--exp-dir",
+            TEMP_EXP_DIR,
+            "--wasatch-laser-power-mw",
+            test_laser_power,
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Acquisition mode" in result.output
+
+    # Verify the output directory and files
+    save_dir = configprofile.save_dir / TEMP_EXP_DIR
+    assert save_dir.is_dir()
+
+    n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(save_dir)
+    assert n_jsons == 1
+    assert n_csvs == 1
+    assert f"setting laser power to {test_laser_power}mW" in result.output
