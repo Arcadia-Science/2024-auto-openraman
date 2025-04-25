@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 import traceback
 from pathlib import Path
@@ -23,6 +24,7 @@ class AcquisitionManager:
         wasatch_integration_time_ms=None,
         wasatch_laser_power_mW=None,
         wasatch_laser_warmup_sec=None,
+        enable_logging: bool = False,
     ):
         """Initialize the AcquisitionManager.
 
@@ -36,7 +38,27 @@ class AcquisitionManager:
                 and close it between positions. The default is False (use auto-shutter).
             randomize_stage_positions (bool): If True, the order of the positions will be
                 randomized.
+            wasatch_integration_time_ms: Integration time for Wasatch spectrometer in ms.
+            wasatch_laser_power_mW: Laser power for Wasatch spectrometer in mW.
+            wasatch_laser_warmup_sec: Laser warmup time for Wasatch spectrometer in seconds.
+            enable_logging (bool): If True, enables detailed logging during acquisition.
         """
+
+        # Set up logging if enabled
+        self.enable_logging = enable_logging
+        if enable_logging:
+            logging.basicConfig(
+                level=logging.INFO,
+                format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                handlers=[
+                    logging.FileHandler(Path(exp_path) / "acquisition.log"),
+                    logging.StreamHandler(),
+                ],
+            )
+            self.logger = logging.getLogger("AcquisitionManager")
+            self.logger.info("Initializing AcquisitionManager")
+        else:
+            self.logger = None
 
         self.n_averages = n_averages
         self.exp_path = Path(exp_path)
@@ -44,13 +66,25 @@ class AcquisitionManager:
         self.shutter = shutter
         self.is_wasatch = "wasatch" in configprofile.spectrometer.lower()
 
+        if self.enable_logging:
+            self.logger.info(
+                f"Parameters: n_averages={n_averages}, exp_path={exp_path}, shutter={shutter}"
+            )
+            self.logger.info(f"Using {'Wasatch' if self.is_wasatch else 'OpenRaman'} spectrometer")
+
         if position_file is not None:
+            if self.enable_logging:
+                self.logger.info(f"Loading stage positions from {position_file}")
             self.xy_positions, self.labels = extract_stage_positions(
                 position_file, randomize_stage_positions
             )
+            if self.enable_logging and self.xy_positions is not None:
+                self.logger.info(f"Loaded {len(self.xy_positions)} stage positions")
         else:
             self.xy_positions = None
             self.labels = None
+            if self.enable_logging:
+                self.logger.info("No stage positions file provided")
 
         self.spectrum_list = []
 
@@ -109,17 +143,25 @@ class AcquisitionManager:
 
         # if the shutter is already in the desired state, do nothing
         if self.core.get_shutter_open() == open:
-            print(f"Shutter is already {'open' if open else 'closed'}")
+            message = f"Shutter is already {'open' if open else 'closed'}"
+            if self.enable_logging:
+                self.logger.info(message)
             return
 
         # if the shutter is not in the desired state, try to set it
+        if self.enable_logging:
+            self.logger.info(f"Setting shutter to {'open' if open else 'closed'}")
         self.core.set_shutter_open(open)
 
         # if the shutter is still not in the desired state, raise an error
         if self.core.get_shutter_open() != open:
-            raise ValueError(f"Shutter could not be set to {'open' if open else 'closed'}")
+            error_msg = f"Shutter could not be set to {'open' if open else 'closed'}"
+            if self.enable_logging:
+                self.logger.error(error_msg)
+            raise ValueError(error_msg)
 
-        print(f"Shutter {'opened' if open else 'closed'}")
+        if self.enable_logging:
+            self.logger.info(f"Shutter {'opened' if open else 'closed'}")
 
     def _save_metadata(self, _filename: str, _metadata: dict) -> None:
         """Save the metadata to a JSON file.
@@ -128,6 +170,10 @@ class AcquisitionManager:
             _filename (str): Metadata filename.
             metadata (dict): The metadata to save.
         """
+
+        metadata_file = self.exp_path / (_filename + ".json")
+        if self.enable_logging:
+            self.logger.info(f"Saving metadata to {metadata_file}")
 
         # add the acquisition parameters to the metadata
         _metadata["Number of averages"] = self.n_averages
@@ -148,8 +194,10 @@ class AcquisitionManager:
                 self.spectrometer_device.laser_warmup_sec
             )
 
-        with open(self.exp_path / (_filename + ".json"), "w") as f:
+        with open(metadata_file, "w") as f:
             json.dump(_metadata, f)
+            if self.enable_logging:
+                self.logger.debug("Metadata saved successfully")
 
     def process_image(self, image: np.ndarray, metadata: dict) -> None:
         """Process the acquired image.
@@ -160,13 +208,21 @@ class AcquisitionManager:
                 dummy image whose input is unused.
             metadata (dict): Image metadata from Micro-Manager.
         """
-        print("process_image")
         fname = metadata.get("PositionName", metadata.get("Position", "DefaultPos"))
+
+        if self.enable_logging:
+            self.logger.info(f"Processing image for position: {fname}")
+            current_avg = len(self.spectrum_list) + 1
+            self.logger.info(f"Current spectrum average: {current_avg}/{self.n_averages}")
 
         if self.is_wasatch:
             # Acquisition for wasatch actually done here
+            if self.enable_logging:
+                self.logger.info("Getting spectrum from Wasatch spectrometer")
             x, img_spectrum = self.spectrometer_device.get_spectrum()
         else:
+            if self.enable_logging:
+                self.logger.info("Converting image to spectrum for OpenRaman")
             img_spectrum = image_to_spectrum(image)
             x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
 
@@ -185,19 +241,29 @@ class AcquisitionManager:
 
         # if this is the final spectrum in the average, save average spectrum and metadata
         if len(self.spectrum_list) == self.n_averages:
-            write_spectrum(self.exp_path / (fname + ".csv"), x, running_avg)
+            output_file = self.exp_path / (fname + ".csv")
+            if self.enable_logging:
+                self.logger.info(f"Saving averaged spectrum to {output_file}")
+            write_spectrum(output_file, x, running_avg)
 
             self._save_metadata(fname, metadata)
 
             self.spectrum_list = []
+            if self.enable_logging:
+                self.logger.info(f"Completed acquisition for position: {fname}")
 
     def run_acquisition(self) -> None:
         """Run the acquisition."""
         start = time.time()
 
+        if self.enable_logging:
+            self.logger.info("Starting acquisition")
+
         plt.show(block=False)
         try:
             with Acquisition(show_display=False) as acq:
+                if self.enable_logging:
+                    self.logger.info("Creating acquisition events")
                 events = multi_d_acquisition_events(
                     num_time_points=self.n_averages,
                     time_interval_s=0,
@@ -205,13 +271,25 @@ class AcquisitionManager:
                     position_labels=self.labels,
                     order="pt",
                 )
-                print(events)
+                if self.enable_logging:
+                    self.logger.info(f"Acquisition events created: {events}")
+                    self.logger.info(f"Created {len(events)} acquisition events")
 
-                for _, event in enumerate(events):
+                for event_idx, event in enumerate(events):
+                    if self.enable_logging:
+                        position_name = event["axes"].get("position", "Default")
+                        time_point = event["axes"].get("time", 0)
+                        self.logger.info(
+                            f"Processing event {event_idx+1}/{len(events)}: "
+                            f"position={position_name}, time={time_point}"
+                        )
+
                     future = acq.acquire(event)
 
                     if self.shutter and (event["axes"]["time"] == 0):
                         # open shutter before first image in timeseries
+                        if self.enable_logging:
+                            self.logger.info("Opening shutter for first image in timeseries")
                         self._set_shutter_open_safe(open=True)
 
                     image, metadata = future.await_image_saved(
@@ -221,12 +299,21 @@ class AcquisitionManager:
 
                     if self.shutter and (event["axes"]["time"] == self.n_averages - 1):
                         # close shutter after last image in timeseries
+                        if self.enable_logging:
+                            self.logger.info("Closing shutter after last image in timeseries")
                         self._set_shutter_open_safe(open=False)
         except Exception as e:
+            error_msg = f"Error during acquisition: {e}\n Time elapsed: {time.time() - start:.2f} s"
             traceback.print_exc()
-            print(f"Error during acquisition: {e}\n Time elapsed: {time.time() - start:.2f} s")
+            if self.enable_logging:
+                self.logger.error(error_msg)
+                self.logger.error(traceback.format_exc())
         finally:
             if self.is_wasatch:
+                if self.enable_logging:
+                    self.logger.info("Turning off Wasatch laser")
                 self.spectrometer_device.laser_off()
             plt.close()
-            print(f"Acquisition complete. Time elapsed: {time.time() - start:.2f} s")
+            complete_msg = f"Acquisition complete. Time elapsed: {time.time() - start:.2f} s"
+            if self.enable_logging:
+                self.logger.info(complete_msg)

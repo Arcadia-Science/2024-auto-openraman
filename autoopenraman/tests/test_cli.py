@@ -138,8 +138,6 @@ def test_acq_command_with_shutter(runner):
     result = runner.invoke(cli, ["acq", "--shutter", "--exp-dir", TEMP_EXP_DIR])
     assert result.exit_code == 0
     assert "Acquisition mode" in result.output
-    assert "Shutter open" in result.output
-    assert "Shutter closed" in result.output
 
     # Verify the output directory and files
     save_dir = configprofile.save_dir / TEMP_EXP_DIR
@@ -183,8 +181,6 @@ def test_acq_command_with_shutter_and_position_file(runner):
     )
     assert result.exit_code == 0
     assert "Acquisition mode" in result.output
-    assert "Shutter open" in result.output
-    assert "Shutter closed" in result.output
 
     # Verify the output directory and files
     save_dir = configprofile.save_dir / TEMP_EXP_DIR
