@@ -1,37 +1,39 @@
-# Mock the pycromanager dependencies
+import json
 import sys
-from unittest.mock import MagicMock, patch
+import tempfile
+from pathlib import Path
 
 import pytest
+from pycromanager import Core, Studio
 from PyQt5.QtWidgets import QApplication
 
-from autoopenraman.gui import AutoOpenRamanGUI
+from autoopenraman import config_profile
+from autoopenraman.gui import AcquisitionWorker, AutoOpenRamanGUI
 
 
-# Create patch for Core and Studio
-@pytest.fixture(autouse=True)
-def mock_pycromanager():
-    with patch("autoopenraman.gui.Core") as mock_core, patch(
-        "autoopenraman.gui.Studio"
-    ) as mock_studio, patch("autoopenraman.gui.Acquisition") as mock_acquisition:
-        # Set up mock Core for image acquisition
-        mock_core_instance = MagicMock()
-        mock_core_instance.snap_image.return_value = None
-        mock_core_instance.get_tagged_image.return_value = MagicMock(
-            pix=[0] * 100, tags={"Width": 10, "Height": 10}
-        )
-        mock_core_instance.get_shutter_open.return_value = False
+@pytest.fixture(scope="session")
+def real_pycromanager():
+    """
+    Fixture for real pycromanager Core and Studio instances.
 
-        # Return the mock instance when Core() is called
-        mock_core.return_value = mock_core_instance
+    Tests will use the actual MM Core and Studio, allowing for realistic testing
+    with connected hardware. For CI/CD environments without MM, use pytest's
+    --skip-mm flag to skip these tests.
+    """
+    try:
+        core = Core()
+        studio = Studio()
 
-        # Set up mock Studio
-        mock_studio.return_value = MagicMock()
+        # Initialize core for testing - this ensures we can acquire basic images
+        # Only runs this setup once per session
+        print("Setting up pycromanager Core")
+        yield {"core": core, "studio": studio}
 
-        # Set up mock acquisition
-        mock_acquisition.return_value.__enter__.return_value = MagicMock()
+    except Exception as e:
+        pytest.skip(f"Could not initialize pycromanager: {e}")
 
-        yield
+    print("Tearing down pycromanager Core")
+    # No explicit cleanup needed for pycromanager
 
 
 @pytest.fixture
@@ -44,11 +46,68 @@ def app():
 
 
 @pytest.fixture
-def gui_window(app):
-    """Create a test instance of our GUI with debug mode enabled."""
+def gui_window(app, real_pycromanager):
+    """Create a test instance of our GUI with debug mode enabled using real MM."""
     window = AutoOpenRamanGUI(debug=True)
     yield window
     window.close()
+
+
+@pytest.fixture(autouse=True)
+def setup_environment(request, monkeypatch):
+    print("setup_environment")
+    env_to_run = request.config.getoption("--environment")
+    print(f"Setting up environment: {env_to_run}")
+
+    # Create a temporary directory to use as save_dir
+    temp_dir = tempfile.TemporaryDirectory()
+    monkeypatch.setattr(config_profile, "save_dir", Path(temp_dir.name))
+
+    # Initialize the profile
+    config_profile.init_profile(env_to_run)
+
+    # Yield the temp directory to keep it alive during the test
+    yield temp_dir
+
+    # Cleanup
+    temp_dir.cleanup()
+
+
+def _create_mock_position_file(file_path: Path, n_positions: int = 2) -> None:
+    """
+    Create a mock JSON file with stage positions for testing.
+
+    Parameters:
+        file_path (Path): The path to the JSON file to create
+        n_positions (int): The number of positions to create
+    """
+    mock_data = {
+        "map": {
+            "StagePositions": {
+                "array": [
+                    {
+                        "DevicePositions": {
+                            "array": [
+                                {"Position_um": {"array": [10.0 * i, 20.0 * i]}},
+                            ]
+                        },
+                        "Label": {"scalar": f"Position{i+1}"},
+                    }
+                    for i in range(n_positions)
+                ]
+            }
+        }
+    }
+
+    with open(file_path, "w") as file:
+        json.dump(mock_data, file, indent=4)
+
+
+def _get_n_jsons_and_csvs_in_dir(directory: Path) -> tuple[int, int]:
+    """Return the number of JSON and CSV files in the given directory."""
+    n_jsons = len(list(directory.glob("*.json")))
+    n_csvs = len(list(directory.glob("*.csv")))
+    return n_jsons, n_csvs
 
 
 def test_gui_initialization(gui_window):
@@ -129,7 +188,7 @@ def test_acquisition_mode_controls(gui_window):
 
     # Check default state
     assert gui_window.position_file_input.text() == ""
-    assert gui_window.exp_dir_input.text() == "data/"
+    assert gui_window.exp_dir_input.text() == ""
     assert gui_window.n_averages_input.value() == 1
     assert gui_window.shutter_check.isChecked() is False
     assert gui_window.randomize_check.isChecked() is False
@@ -163,3 +222,178 @@ def test_spectrum_processing(gui_window):
     result = gui_window.process_spectrum(test_spectrum_with_spike)
     # The spike should be smoothed out by the median filter
     assert result[50] < 100
+
+
+# Tests adapted from test_acq.py
+def test_acq_worker_no_args(app, real_pycromanager):
+    """Test acquisition worker with default settings."""
+    # Create a temporary directory for the experiment
+    with tempfile.TemporaryDirectory() as temp_dir:
+        exp_path = Path(temp_dir) / "exp1"
+        exp_path.mkdir()
+
+        # Create acquisition worker with real MM
+        worker = AcquisitionWorker(
+            n_averages=1,
+            exp_path=exp_path,
+            position_file=None,
+            shutter=False,
+            randomize_stage_positions=False,
+        )
+
+        # Run acquisition
+        worker.run_acquisition()
+
+        # Verify the output directory and files
+        assert exp_path.is_dir()
+        n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(exp_path)
+        assert n_jsons == 1
+        assert n_csvs == 1
+
+
+def test_acq_worker_with_averaging(app, real_pycromanager):
+    """Test acquisition worker with averaging."""
+    # Create a temporary directory for the experiment
+    with tempfile.TemporaryDirectory() as temp_dir:
+        exp_path = Path(temp_dir) / "exp1"
+        exp_path.mkdir()
+
+        # Create acquisition worker
+        worker = AcquisitionWorker(
+            n_averages=5,
+            exp_path=exp_path,
+            position_file=None,
+            shutter=False,
+            randomize_stage_positions=False,
+        )
+
+        # Run acquisition
+        worker.run_acquisition()
+
+        # Verify the output directory and files
+        assert exp_path.is_dir()
+        n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(exp_path)
+        assert n_jsons == 1
+        assert n_csvs == 1
+
+
+def test_acq_worker_with_position_file(app, real_pycromanager):
+    """Test acquisition worker with position file."""
+    # Create a temporary directory for the experiment
+    with tempfile.TemporaryDirectory() as temp_dir:
+        exp_path = Path(temp_dir) / "exp1"
+        exp_path.mkdir()
+
+        # Create a mock position file
+        _n_positions = 5
+        position_file = Path(temp_dir) / "positions.json"
+        _create_mock_position_file(position_file, n_positions=_n_positions)
+
+        # Create acquisition worker
+        worker = AcquisitionWorker(
+            n_averages=2,
+            exp_path=exp_path,
+            position_file=str(position_file),
+            shutter=False,
+            randomize_stage_positions=False,
+        )
+
+        # Run acquisition
+        worker.run_acquisition()
+
+        # Verify the output directory and files
+        assert exp_path.is_dir()
+        n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(exp_path)
+        assert n_jsons == _n_positions
+        assert n_csvs == _n_positions
+
+
+def test_acq_worker_with_shutter(app, real_pycromanager):
+    """Test acquisition worker with shutter."""
+    # Create a temporary directory for the experiment
+    with tempfile.TemporaryDirectory() as temp_dir:
+        exp_path = Path(temp_dir) / "exp1"
+        exp_path.mkdir()
+
+        # Create acquisition worker
+        worker = AcquisitionWorker(
+            n_averages=1,
+            exp_path=exp_path,
+            position_file=None,
+            shutter=True,
+            randomize_stage_positions=False,
+        )
+
+        # Run acquisition
+        worker.run_acquisition()
+
+        # Verify the output directory and files
+        assert exp_path.is_dir()
+        n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(exp_path)
+        assert n_jsons == 1
+        assert n_csvs == 1
+
+
+def test_acq_worker_with_timelapse(app, real_pycromanager):
+    """Test acquisition worker with timelapse."""
+    # Create a temporary directory for the experiment
+    with tempfile.TemporaryDirectory() as temp_dir:
+        exp_path = Path(temp_dir) / "timelapse"
+        exp_path.mkdir()
+
+        # Create acquisition worker
+        worker = AcquisitionWorker(
+            n_averages=1,
+            exp_path=exp_path,
+            position_file=None,
+            shutter=False,
+            randomize_stage_positions=False,
+            num_time_points=3,
+            time_interval_s=0.1,  # Short interval for testing
+        )
+
+        # Run acquisition
+        worker.run_acquisition()
+
+        # Verify the output directory exists
+        assert exp_path.is_dir()
+
+        # Should have 3 time points with JSON/CSV pairs
+        n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(exp_path)
+        assert n_jsons == 3
+        assert n_csvs == 3
+
+
+def test_acq_worker_with_timelapse_and_position_file(app, real_pycromanager):
+    """Test acquisition worker with timelapse and position file."""
+    # Create a temporary directory for the experiment
+    with tempfile.TemporaryDirectory() as temp_dir:
+        exp_path = Path(temp_dir) / "timelapse_positions"
+        exp_path.mkdir()
+
+        # Create a mock position file
+        _n_positions = 3
+        position_file = Path(temp_dir) / "positions.json"
+        _create_mock_position_file(position_file, n_positions=_n_positions)
+
+        # Create acquisition worker
+        worker = AcquisitionWorker(
+            n_averages=1,
+            exp_path=exp_path,
+            position_file=str(position_file),
+            shutter=False,
+            randomize_stage_positions=False,
+            num_time_points=3,
+            time_interval_s=0.1,  # Short interval for testing
+        )
+
+        # Run acquisition
+        worker.run_acquisition()
+
+        # Verify the output directory exists
+        assert exp_path.is_dir()
+
+        # Should have 3 time points for each position
+        n_jsons, n_csvs = _get_n_jsons_and_csvs_in_dir(exp_path)
+        assert n_jsons == 9  # 3 positions × 3 time points
+        assert n_csvs == 9

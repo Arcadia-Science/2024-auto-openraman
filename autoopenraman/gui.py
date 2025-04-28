@@ -1,6 +1,7 @@
 import json
 import sys
 import time
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -272,7 +273,7 @@ class AutoOpenRamanGUI(QMainWindow):
         # Experiment Directory Row
         exp_dir_layout = QHBoxLayout()
         exp_dir_layout.addWidget(QLabel("Experiment Directory:"))
-        self.exp_dir_input = QLineEdit("data/")
+        self.exp_dir_input = QLineEdit("")
         exp_dir_layout.addWidget(self.exp_dir_input)
 
         self.browse_dir_btn = QPushButton("Browse...")
@@ -289,6 +290,27 @@ class AutoOpenRamanGUI(QMainWindow):
         self.n_averages_input.setValue(1)
         n_avg_layout.addWidget(self.n_averages_input)
         settings_layout.addLayout(n_avg_layout)
+
+        # Timelapse Settings
+        timelapse_layout = QHBoxLayout()
+
+        # Number of Time Points
+        timelapse_layout.addWidget(QLabel("Time Points:"))
+        self.num_time_points_input = QSpinBox()
+        self.num_time_points_input.setMinimum(1)
+        self.num_time_points_input.setMaximum(1000)
+        self.num_time_points_input.setValue(1)
+        timelapse_layout.addWidget(self.num_time_points_input)
+
+        # Time Interval
+        timelapse_layout.addWidget(QLabel("Interval (s):"))
+        self.time_interval_input = QSpinBox()
+        self.time_interval_input.setMinimum(0)
+        self.time_interval_input.setMaximum(3600)
+        self.time_interval_input.setValue(0)
+        timelapse_layout.addWidget(self.time_interval_input)
+
+        settings_layout.addLayout(timelapse_layout)
 
         # Checkboxes Row
         checkboxes_layout = QHBoxLayout()
@@ -406,6 +428,8 @@ class AutoOpenRamanGUI(QMainWindow):
         exp_dir = self.exp_dir_input.text()
         shutter = self.shutter_check.isChecked()
         randomize_stage_positions = self.randomize_check.isChecked()
+        num_time_points = self.num_time_points_input.value()
+        time_interval_s = self.time_interval_input.value()
 
         # Check if position file is valid when randomize is checked
         if randomize_stage_positions and not position_file:
@@ -444,6 +468,8 @@ class AutoOpenRamanGUI(QMainWindow):
             kernel_size,
             self.reverse_x,
             self,
+            num_time_points,
+            time_interval_s,
         )
         self.acquisition_worker.moveToThread(self.acquisition_thread)
         self.acquisition_thread.started.connect(self.acquisition_worker.run_acquisition)
@@ -515,6 +541,8 @@ class AcquisitionWorker(QThread):
         kernel_size=3,
         reverse_x=False,
         parent=None,
+        num_time_points=1,
+        time_interval_s=0,
     ):
         super().__init__(parent)
         self.n_averages = n_averages
@@ -525,6 +553,8 @@ class AcquisitionWorker(QThread):
         self.apply_median_filter = apply_median_filter
         self.kernel_size = kernel_size
         self.reverse_x = reverse_x
+        self.num_time_points = num_time_points
+        self.time_interval_s = time_interval_s
 
         # List to store spectra for the current position
         self.spectrum_list = []
@@ -576,6 +606,10 @@ class AcquisitionWorker(QThread):
         _metadata["Number of averages"] = self.n_averages
         _metadata["Stage position file"] = self.position_file
         _metadata["DateTime"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        _metadata["Timelapse"] = {
+            "NumTimePoints": self.num_time_points,
+            "TimeIntervalSeconds": self.time_interval_s,
+        }
 
         # Add processing parameters
         _metadata["Processing"] = {
@@ -588,7 +622,11 @@ class AcquisitionWorker(QThread):
 
     def process_image(self, image: np.ndarray, metadata: dict) -> None:
         """Process the acquired image."""
-        fname = metadata.get("PositionName", metadata.get("Position", "DefaultPos"))
+        position_name = metadata.get("PositionName", metadata.get("Position", "DefaultPos"))
+        axes = metadata.get("Axes")
+        time_value = axes.get("time") if axes else "0"
+        fname = f"{position_name}_{time_value}"
+
         img_spectrum = image_to_spectrum(image)
 
         x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
@@ -621,28 +659,48 @@ class AcquisitionWorker(QThread):
         start = time.time()
 
         with Acquisition(show_display=False) as acq:
-            events = multi_d_acquisition_events(
-                num_time_points=self.n_averages,
-                time_interval_s=0,
+            event_stack = multi_d_acquisition_events(
+                num_time_points=self.num_time_points,
                 xy_positions=self.xy_positions,
                 position_labels=self.labels,
                 order="pt",
             )
+            print("Event stack:")
+            print(event_stack)
+            events = []
+            for _event in event_stack:
+                for i in range(self.n_averages):
+                    __event = deepcopy(_event)
+                    __event["axes"]["avg_index"] = i
+                    events.append(__event)
+            print("Events:")
+            print(events)
 
             for _, event in enumerate(events):
                 future = acq.acquire(event)
 
-                if self.shutter and (event["axes"]["time"] == 0):
-                    # open shutter before first image in timeseries
+                if self.shutter and (event["axes"]["avg_index"] == 0):
+                    # open shutter before first image series
                     self._set_shutter_open_safe(is_open=True)
 
+                print(f"Acquiring image {event["axes"]["avg_index"] + 1}/{self.n_averages}")
                 image, metadata = future.await_image_saved(
-                    event["axes"], return_image=True, return_metadata=True
+                    None, return_image=True, return_metadata=True
                 )
                 self.process_image(image, metadata)
 
-                if self.shutter and (event["axes"]["time"] == self.n_averages - 1):
-                    # close shutter after last image in timeseries
+                """
+                Because time_interval_s does not work properly in PycroManager
+                (see https://github.com/micro-manager/pycro-manager/issues/733), we manually
+                implement the delay here. There are likely issues with this, e.g. there should be no
+                 delay when moving to a new position, but this does a basic timelapse
+                """
+                is_final_in_average = event["axes"]["avg_index"] == self.n_averages - 1
+                if (self.time_interval_s > 0) and is_final_in_average:
+                    time.sleep(self.time_interval_s)
+
+                if self.shutter and is_final_in_average:
+                    # close shutter after last image in series
                     self._set_shutter_open_safe(is_open=False)
 
         print(f"Time elapsed: {time.time() - start:.2f} s")
