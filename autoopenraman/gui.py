@@ -46,9 +46,17 @@ class CameraWorker(QThread):
         super().__init__()
         self._core = Core()
         self.running = True
+        self.pause_acquisition = False
+        self.last_spectrum = None  # Store the last acquired spectrum
 
     def run(self):
         while self.running:
+            # Check if acquisition is paused (for background capture)
+            if self.pause_acquisition:
+                # Sleep briefly to avoid CPU overuse
+                self.msleep(50)
+                continue
+
             try:
                 # Acquire image
                 self._core.snap_image()
@@ -58,6 +66,11 @@ class CameraWorker(QThread):
                     newshape=[-1, tagged_image.tags["Height"], tagged_image.tags["Width"]],
                 )
                 spectrum = image_to_spectrum(image_2d)
+
+                # Store the spectrum for potential background capture
+                self.last_spectrum = spectrum.copy()
+
+                # Emit the spectrum to be displayed
                 self.data_acquired.emit(spectrum)
             except Exception as e:
                 print(f"Error snapping image: {e}")
@@ -85,6 +98,23 @@ class AutoOpenRamanGUI(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
 
+        # Initialize variables for live mode
+        self.worker = None
+        self.apply_median_filter = False
+        self.reverse_x = False
+        self.background_spectrum = None  # For background subtraction
+        self.background_active = False  # Flag for background subtraction
+
+        # Initialize variables for acquisition mode
+        self.xy_positions = None
+        self.labels = None
+        self.spectrum_list = []
+
+        # Initialize calibration variables
+        self.calibrator = RamanCalibrator()
+        self.calibration_active = False
+        self.x_axis_mode = "pixels"  # Can be "pixels" or "wavenumbers"
+
         # Create the mode selection buttons at the top
         self.create_mode_selector()
 
@@ -105,21 +135,6 @@ class AutoOpenRamanGUI(QMainWindow):
         # Create Acquisition Mode Page
         self.acq_mode_widget = self.create_acquisition_mode_page()
         self.stacked_widget.addWidget(self.acq_mode_widget)
-
-        # Initialize variables for live mode
-        self.worker = None
-        self.apply_median_filter = False
-        self.reverse_x = False
-
-        # Initialize variables for acquisition mode
-        self.xy_positions = None
-        self.labels = None
-        self.spectrum_list = []
-
-        # Initialize calibration variables
-        self.calibrator = RamanCalibrator()
-        self.calibration_active = False
-        self.x_axis_mode = "pixels"  # Can be "pixels" or "wavenumbers"
 
         # Debug mode timer
         if self.debug:
@@ -239,8 +254,16 @@ class AutoOpenRamanGUI(QMainWindow):
 
         # Create the main plot with appropriate color for the mode
         if mode == "live":
-            self.plot = self.plot_widget.plot(pen="b")
-            self.plot_widget.setTitle("Live Mode - Spectrum")
+            # Set color based on background subtraction state
+            if self.background_active:
+                plot_color = "g"  # Green for background-subtracted
+                plot_title = "Live Mode - Background Subtracted"
+            else:
+                plot_color = "b"  # Blue for normal display
+                plot_title = "Live Mode - Spectrum"
+
+            self.plot = self.plot_widget.plot(pen=plot_color)
+            self.plot_widget.setTitle(plot_title)
 
             # Hide current spectrum plot if it exists
             if hasattr(self, "current_spectrum_plot"):
@@ -284,17 +307,44 @@ class AutoOpenRamanGUI(QMainWindow):
 
         # Controls Group
         controls_group = QGroupBox("Live Mode Controls")
-        controls_layout = QHBoxLayout(controls_group)
+        controls_layout = QVBoxLayout(controls_group)
+
+        # First row - Start/Stop buttons
+        acquisition_layout = QHBoxLayout()
 
         # Start/Stop Button
         self.start_live_btn = QPushButton("Start Live")
         self.start_live_btn.clicked.connect(self.start_live_acquisition)
-        controls_layout.addWidget(self.start_live_btn)
+        acquisition_layout.addWidget(self.start_live_btn)
 
         self.stop_live_btn = QPushButton("Stop Live")
         self.stop_live_btn.clicked.connect(self.stop_live_acquisition)
         self.stop_live_btn.setEnabled(False)
-        controls_layout.addWidget(self.stop_live_btn)
+        acquisition_layout.addWidget(self.stop_live_btn)
+
+        controls_layout.addLayout(acquisition_layout)
+
+        # Second row - Background subtraction buttons
+        background_layout = QHBoxLayout()
+
+        # Store Background Button
+        self.store_bg_btn = QPushButton("Store Background")
+        self.store_bg_btn.clicked.connect(self.store_background)
+        self.store_bg_btn.setToolTip("Store current spectrum as background for subtraction")
+        background_layout.addWidget(self.store_bg_btn)
+
+        # Clear Background Button
+        self.clear_bg_btn = QPushButton("Clear Background")
+        self.clear_bg_btn.clicked.connect(self.clear_background)
+        self.clear_bg_btn.setToolTip("Clear stored background and disable subtraction")
+        self.clear_bg_btn.setEnabled(False)  # Disabled until background is stored
+        background_layout.addWidget(self.clear_bg_btn)
+
+        # Background status indicator
+        self.bg_status_label = QLabel("Background: Not set")
+        background_layout.addWidget(self.bg_status_label)
+
+        controls_layout.addLayout(background_layout)
 
         live_layout.addWidget(controls_group)
 
@@ -416,9 +466,84 @@ class AutoOpenRamanGUI(QMainWindow):
         self.stop_live_btn.setEnabled(False)
         print("Stopped live acquisition...")
 
+    def store_background(self):
+        """Store the current spectrum as background for subtraction."""
+        if self.worker and self.worker.isRunning():
+            # Get the most recent spectrum
+            self.worker.pause_acquisition = True
+            # Wait a moment to ensure we're not in the middle of acquisition
+            QTimer.singleShot(100, self._do_store_background)
+        else:
+            # Not in live mode - warn user
+            QMessageBox.warning(
+                self,
+                "Background Storage",
+                "Please start Live Mode first to capture a background spectrum.",
+            )
+
+    def _do_store_background(self):
+        """Internal method to actually store the background after pausing acquisition."""
+        if not hasattr(self.worker, "last_spectrum") or self.worker.last_spectrum is None:
+            QMessageBox.warning(
+                self,
+                "Background Storage",
+                "No spectrum available. Please wait for at least one spectrum to be acquired.",
+            )
+            self.worker.pause_acquisition = False
+            return
+
+        # Store the background spectrum (raw, unprocessed)
+        self.background_spectrum = self.worker.last_spectrum.copy()
+        self.background_active = True
+
+        # Update UI
+        self.bg_status_label.setText("Background: Active")
+        self.clear_bg_btn.setEnabled(True)
+        self.worker.pause_acquisition = False
+
+        # Update the plot color to indicate background subtraction
+        self.plot.setPen("g")  # Green for background-subtracted spectra
+
+        print("Background spectrum stored and subtraction enabled")
+
+    def clear_background(self):
+        """Clear the stored background and disable subtraction."""
+        self.background_spectrum = None
+        self.background_active = False
+
+        # Update UI
+        self.bg_status_label.setText("Background: Not set")
+        self.clear_bg_btn.setEnabled(False)
+
+        # Restore plot color
+        self.plot.setPen("b")  # Blue for regular spectra
+
+        print("Background cleared and subtraction disabled")
+
     def update_live_plot(self, spectrum):
         """Update the live plot with new spectrum data."""
-        processed_spectrum = self.process_spectrum(spectrum)
+        # Apply background subtraction if active
+        if self.background_active and self.background_spectrum is not None:
+            # Handle different lengths if they occur
+            if len(spectrum) == len(self.background_spectrum):
+                # Subtract background - make sure we don't go below zero
+                subtracted_spectrum = np.maximum(spectrum - self.background_spectrum, 0)
+                # Process the subtracted spectrum
+                processed_spectrum = self.process_spectrum(subtracted_spectrum)
+                # Set title to indicate background subtraction
+                plot_title = "Live Mode - Background Subtracted"
+                # Use green color for background-subtracted data
+                plot_color = "g"
+            else:
+                # Sizes don't match - can't subtract
+                processed_spectrum = self.process_spectrum(spectrum)
+                plot_title = "Live Mode - Background Size Mismatch!"
+                plot_color = "r"  # Red to indicate an error
+        else:
+            # Normal processing without background subtraction
+            processed_spectrum = self.process_spectrum(spectrum)
+            plot_title = "Live Mode - Spectrum"
+            plot_color = "b"  # Blue for regular data
 
         # Create the x_data array
         if self.x_axis_mode == "wavenumbers" and self.calibration_active:
@@ -432,14 +557,14 @@ class AutoOpenRamanGUI(QMainWindow):
             # Update x-axis label
             self.plot_widget.setLabel("bottom", "Pixels")
 
-        # Set a consistent pen color for live data (blue)
-        self.plot.setPen("b")
+        # Set pen color based on whether background subtraction is active
+        self.plot.setPen(plot_color)
 
         # Update the plot with processed data
         self.plot.setData(x_data, processed_spectrum)
 
-        # Update title to indicate we're in live mode
-        self.plot_widget.setTitle("Live Mode - Spectrum")
+        # Update title
+        self.plot_widget.setTitle(plot_title)
 
     def process_spectrum(self, spectrum):
         """Apply common processing to spectrum data based on filter settings."""
