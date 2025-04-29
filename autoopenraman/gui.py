@@ -10,12 +10,15 @@ from PyQt5.QtCore import QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QApplication,
     QCheckBox,
+    QComboBox,
+    QDialog,
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QSpinBox,
     QStackedWidget,
@@ -26,7 +29,13 @@ from pyqtgraph import PlotWidget
 from scipy.signal import medfilt
 
 from autoopenraman import config_profile
-from autoopenraman.utils import extract_stage_positions, image_to_spectrum, write_spectrum
+from autoopenraman.utils import (
+    DEFAULT_EXCITATION_WAVELENGTH_NM,
+    RamanCalibrator,
+    extract_stage_positions,
+    image_to_spectrum,
+    write_spectrum,
+)
 
 
 # Worker Thread for Image Acquisition (used in Live Mode)
@@ -107,6 +116,11 @@ class AutoOpenRamanGUI(QMainWindow):
         self.labels = None
         self.spectrum_list = []
 
+        # Initialize calibration variables
+        self.calibrator = RamanCalibrator()
+        self.calibration_active = False
+        self.x_axis_mode = "pixels"  # Can be "pixels" or "wavenumbers"
+
         # Debug mode timer
         if self.debug:
             print("Debug mode enabled")
@@ -155,28 +169,65 @@ class AutoOpenRamanGUI(QMainWindow):
     def create_common_controls(self):
         """Create controls that are common to both live and acquisition modes"""
         common_controls = QGroupBox("Spectrum Processing")
-        controls_layout = QHBoxLayout(common_controls)
+
+        # Use a vertical layout to stack control rows
+        main_controls_layout = QVBoxLayout(common_controls)
+
+        # First row of controls
+        processing_controls = QHBoxLayout()
 
         # Reverse X Checkbox
         self.reverse_x_check = QCheckBox("Reverse X")
         self.reverse_x_check.stateChanged.connect(self.toggle_reverse_x)
-        controls_layout.addWidget(self.reverse_x_check)
+        processing_controls.addWidget(self.reverse_x_check)
 
         # Median Filter Checkbox
         self.median_filter_check = QCheckBox("Apply Median Filter")
         self.median_filter_check.stateChanged.connect(self.toggle_median_filter)
-        controls_layout.addWidget(self.median_filter_check)
+        processing_controls.addWidget(self.median_filter_check)
 
         # Kernel Size Input
-        controls_layout.addWidget(QLabel("Kernel Size:"))
+        processing_controls.addWidget(QLabel("Kernel Size:"))
         self.kernel_size_input = QLineEdit("3")
-        controls_layout.addWidget(self.kernel_size_input)
+        processing_controls.addWidget(self.kernel_size_input)
 
         # Show Current Measurement Checkbox (for acquisition mode)
         self.show_current_check = QCheckBox("Show Current Measurement")
         self.show_current_check.setChecked(True)
         self.show_current_check.stateChanged.connect(self.toggle_show_current)
-        controls_layout.addWidget(self.show_current_check)
+        processing_controls.addWidget(self.show_current_check)
+
+        # Add the first row to the main layout
+        main_controls_layout.addLayout(processing_controls)
+
+        # Second row - Calibration controls
+        calibration_controls = QHBoxLayout()
+
+        # X-axis mode selector
+        calibration_controls.addWidget(QLabel("X-Axis:"))
+        self.x_axis_mode_combo = QComboBox()
+        self.x_axis_mode_combo.addItems(["Pixels", "Wavenumbers (cm⁻¹)"])
+        self.x_axis_mode_combo.currentIndexChanged.connect(self.change_x_axis_mode)
+        calibration_controls.addWidget(self.x_axis_mode_combo)
+
+        # Calibrate button
+        self.calibrate_btn = QPushButton("Calibrate")
+        self.calibrate_btn.clicked.connect(self.open_calibration_dialog)
+        calibration_controls.addWidget(self.calibrate_btn)
+
+        # Load calibration button
+        self.load_calibration_btn = QPushButton("Load Calibration")
+        self.load_calibration_btn.clicked.connect(self.load_calibration)
+        calibration_controls.addWidget(self.load_calibration_btn)
+
+        # Save calibration button
+        self.save_calibration_btn = QPushButton("Save Calibration")
+        self.save_calibration_btn.clicked.connect(self.save_calibration)
+        self.save_calibration_btn.setEnabled(False)  # Disabled until calibration is performed
+        calibration_controls.addWidget(self.save_calibration_btn)
+
+        # Add second row to main layout
+        main_controls_layout.addLayout(calibration_controls)
 
         # Add the common controls to the main layout
         self.main_layout.addWidget(common_controls)
@@ -368,7 +419,18 @@ class AutoOpenRamanGUI(QMainWindow):
     def update_live_plot(self, spectrum):
         """Update the live plot with new spectrum data."""
         processed_spectrum = self.process_spectrum(spectrum)
-        x_data = np.linspace(0, len(processed_spectrum), len(processed_spectrum))
+
+        # Create the x_data array
+        if self.x_axis_mode == "wavenumbers" and self.calibration_active:
+            # Use calibrated wavenumbers for the x-axis
+            x_data = self.calibrator.apply_calibration(np.arange(len(processed_spectrum)))
+            # Update x-axis label
+            self.plot_widget.setLabel("bottom", "Wavenumber (cm⁻¹)")
+        else:
+            # Use pixel indices for the x-axis
+            x_data = np.arange(len(processed_spectrum))
+            # Update x-axis label
+            self.plot_widget.setLabel("bottom", "Pixels")
 
         # Set a consistent pen color for live data (blue)
         self.plot.setPen("b")
@@ -484,12 +546,20 @@ class AutoOpenRamanGUI(QMainWindow):
         processed_current = self.process_spectrum(current_spectrum)
         processed_avg = self.process_spectrum(running_avg)
 
-        # Create new x values if needed
-        if len(x) != len(processed_avg):
-            x = np.linspace(0, len(processed_avg), len(processed_avg))
+        # Create x values based on the current mode
+        if self.x_axis_mode == "wavenumbers" and self.calibration_active:
+            # Use calibrated wavenumbers for the x-axis
+            x_values = self.calibrator.apply_calibration(np.arange(len(processed_avg)))
+            # Update x-axis label
+            self.plot_widget.setLabel("bottom", "Wavenumber (cm⁻¹)")
+        else:
+            # Use pixel indices for the x-axis
+            x_values = np.arange(len(processed_avg))
+            # Update x-axis label
+            self.plot_widget.setLabel("bottom", "Pixels")
 
         # Update running average plot (blue)
-        self.plot.setData(x, processed_avg)
+        self.plot.setData(x_values, processed_avg)
 
         # Check if we need to recreate the current spectrum plot
         if self.show_current_check.isChecked():
@@ -498,7 +568,7 @@ class AutoOpenRamanGUI(QMainWindow):
                 self.current_spectrum_plot = self.plot_widget.plot(pen="r")
 
             # Update the current spectrum data
-            self.current_spectrum_plot.setData(x, processed_current)
+            self.current_spectrum_plot.setData(x_values, processed_current)
             self.current_spectrum_plot.setVisible(True)
 
             # Title with both plots indicated
@@ -517,11 +587,304 @@ class AutoOpenRamanGUI(QMainWindow):
         # Make sure the GUI refreshes to show the new data immediately
         QApplication.processEvents()
 
+    def change_x_axis_mode(self, index):
+        """Change the x-axis mode (pixels or wavenumbers)."""
+        if index == 0:
+            self.x_axis_mode = "pixels"
+        else:
+            self.x_axis_mode = "wavenumbers"
+            if not self.calibration_active:
+                QMessageBox.warning(
+                    self,
+                    "Calibration Required",
+                    (
+                        "Wavenumber display requires calibration. "
+                        "Please calibrate or load a calibration file."
+                    ),
+                )
+
+        # Update the current plot
+        if self.worker and self.worker.isRunning():
+            # Live mode is running, it will update on next frame
+            pass
+        elif hasattr(self, "spectrum_list") and len(self.spectrum_list) > 0:
+            # Manually update the acquisition plot with the most recent data
+            self.update_acq_plot(
+                None,  # x values will be generated in update_acq_plot
+                self.spectrum_list[-1],
+                np.mean(self.spectrum_list, axis=0),
+                "Current Spectrum",
+            )
+
+    def open_calibration_dialog(self):
+        """Open the calibration dialog to perform calibration."""
+        dialog = CalibrationDialog(self)
+        if dialog.exec_() == QDialog.Accepted:
+            # Get the neon and acetonitrile spectra from the dialog
+            neon_spectrum = dialog.neon_spectrum
+            acetonitrile_spectrum = dialog.acetonitrile_spectrum
+
+            if neon_spectrum is None or acetonitrile_spectrum is None:
+                QMessageBox.warning(
+                    self,
+                    "Calibration Error",
+                    "Both neon and acetonitrile spectra are required for calibration.",
+                )
+                return
+
+            try:
+                # Perform calibration
+                self.calibrator.calibrate(neon_spectrum, acetonitrile_spectrum)
+                self.calibration_active = True
+
+                # Enable the save calibration button
+                self.save_calibration_btn.setEnabled(True)
+
+                # Update the plot if in wavenumber mode
+                if self.x_axis_mode == "wavenumbers":
+                    if self.worker and self.worker.isRunning():
+                        # Live mode will update on next frame
+                        pass
+                    elif hasattr(self, "spectrum_list") and len(self.spectrum_list) > 0:
+                        # Update the acquisition plot
+                        self.update_acq_plot(
+                            None,  # x values will be generated in update_acq_plot
+                            self.spectrum_list[-1],
+                            np.mean(self.spectrum_list, axis=0),
+                            "Current Spectrum",
+                        )
+
+                QMessageBox.information(
+                    self,
+                    "Calibration Successful",
+                    (
+                        "Calibration completed successfully."
+                        "X-axis can now be displayed in wavenumbers."
+                    ),
+                )
+
+            except Exception as e:
+                QMessageBox.warning(
+                    self, "Calibration Error", f"Error during calibration: {str(e)}"
+                )
+
+    def load_calibration(self):
+        """Load a calibration file."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Load Calibration File", "", "Calibration Files (*.cal);;All Files (*)"
+        )
+
+        if file_path:
+            try:
+                self.calibrator.load_calibration(Path(file_path))
+                self.calibration_active = True
+                self.save_calibration_btn.setEnabled(True)
+
+                # Update the plot if in wavenumber mode
+                if self.x_axis_mode == "wavenumbers":
+                    if self.worker and self.worker.isRunning():
+                        # Live mode will update on next frame
+                        pass
+                    elif hasattr(self, "spectrum_list") and len(self.spectrum_list) > 0:
+                        # Update the acquisition plot
+                        self.update_acq_plot(
+                            None,  # x values will be generated in update_acq_plot
+                            self.spectrum_list[-1],
+                            np.mean(self.spectrum_list, axis=0),
+                            "Current Spectrum",
+                        )
+
+                QMessageBox.information(
+                    self, "Calibration Loaded", "Calibration file loaded successfully."
+                )
+
+            except Exception as e:
+                QMessageBox.warning(
+                    self, "Load Calibration Error", f"Error loading calibration file: {str(e)}"
+                )
+
+    def save_calibration(self):
+        """Save the current calibration to a file."""
+        if not self.calibration_active:
+            QMessageBox.warning(
+                self,
+                "Save Calibration Error",
+                "No calibration to save. Please perform calibration first.",
+            )
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save Calibration File", "", "Calibration Files (*.cal);;All Files (*)"
+        )
+
+        if file_path:
+            try:
+                if not file_path.endswith(".cal"):
+                    file_path += ".cal"
+                self.calibrator.save_calibration(Path(file_path))
+
+                QMessageBox.information(
+                    self, "Calibration Saved", "Calibration saved successfully."
+                )
+
+            except Exception as e:
+                QMessageBox.warning(
+                    self, "Save Calibration Error", f"Error saving calibration file: {str(e)}"
+                )
+
     def closeEvent(self, event):
         """Handle window close event to stop worker thread."""
         if self.worker:
             self.worker.stop()
         event.accept()
+
+
+class CalibrationDialog(QDialog):
+    """Dialog for calibration using neon and acetonitrile spectra."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Spectrum Calibration")
+        self.setMinimumWidth(600)
+
+        # Spectral data
+        self.neon_spectrum = None
+        self.acetonitrile_spectrum = None
+
+        # Create the layout
+        layout = QVBoxLayout(self)
+
+        # Add information text
+        info_label = QLabel(
+            "Calibration requires two reference spectra:\n"
+            "1. Neon lamp spectrum for rough wavelength calibration\n"
+            "2. Acetonitrile spectrum for fine wavenumber calibration\n\n"
+            "Please select the CSV files containing these spectra."
+        )
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
+
+        # Neon spectrum file selection
+        neon_layout = QHBoxLayout()
+        neon_layout.addWidget(QLabel("Neon Spectrum File:"))
+        self.neon_file_input = QLineEdit()
+        self.neon_file_input.setReadOnly(True)
+        neon_layout.addWidget(self.neon_file_input)
+        self.browse_neon_btn = QPushButton("Browse...")
+        self.browse_neon_btn.clicked.connect(self.browse_neon_file)
+        neon_layout.addWidget(self.browse_neon_btn)
+        layout.addLayout(neon_layout)
+
+        # Acetonitrile spectrum file selection
+        acn_layout = QHBoxLayout()
+        acn_layout.addWidget(QLabel("Acetonitrile Spectrum File:"))
+        self.acn_file_input = QLineEdit()
+        self.acn_file_input.setReadOnly(True)
+        acn_layout.addWidget(self.acn_file_input)
+        self.browse_acn_btn = QPushButton("Browse...")
+        self.browse_acn_btn.clicked.connect(self.browse_acn_file)
+        acn_layout.addWidget(self.browse_acn_btn)
+        layout.addLayout(acn_layout)
+
+        # Excitation wavelength input
+        excitation_layout = QHBoxLayout()
+        excitation_layout.addWidget(QLabel("Excitation Wavelength (nm):"))
+        self.excitation_input = QLineEdit(str(DEFAULT_EXCITATION_WAVELENGTH_NM))
+        excitation_layout.addWidget(self.excitation_input)
+        layout.addLayout(excitation_layout)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.clicked.connect(self.reject)
+        button_layout.addWidget(self.cancel_btn)
+
+        self.calibrate_btn = QPushButton("Calibrate")
+        self.calibrate_btn.clicked.connect(self.accept)
+        self.calibrate_btn.setEnabled(False)  # Disabled until both files are selected
+        button_layout.addWidget(self.calibrate_btn)
+
+        layout.addLayout(button_layout)
+
+    def browse_neon_file(self):
+        """Open file dialog to select neon spectrum file."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Select Neon Spectrum File", "", "CSV Files (*.csv);;All Files (*)"
+        )
+
+        if file_path:
+            self.neon_file_input.setText(file_path)
+            try:
+                # Load the spectrum data
+                spectrum_data = np.loadtxt(file_path, delimiter=",", skiprows=1)
+                self.neon_spectrum = spectrum_data[:, 1]  # Take the intensity column
+
+                # Enable the calibrate button if both files are selected
+                if self.acetonitrile_spectrum is not None:
+                    self.calibrate_btn.setEnabled(True)
+
+            except Exception as e:
+                QMessageBox.warning(
+                    self, "File Error", f"Error loading neon spectrum file: {str(e)}"
+                )
+                self.neon_file_input.setText("")
+                self.neon_spectrum = None
+                self.calibrate_btn.setEnabled(False)
+
+    def browse_acn_file(self):
+        """Open file dialog to select acetonitrile spectrum file."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Select Acetonitrile Spectrum File", "", "CSV Files (*.csv);;All Files (*)"
+        )
+
+        if file_path:
+            self.acn_file_input.setText(file_path)
+            try:
+                # Load the spectrum data
+                spectrum_data = np.loadtxt(file_path, delimiter=",", skiprows=1)
+                self.acetonitrile_spectrum = spectrum_data[:, 1]  # Take the intensity column
+
+                # Enable the calibrate button if both files are selected
+                if self.neon_spectrum is not None:
+                    self.calibrate_btn.setEnabled(True)
+
+            except Exception as e:
+                QMessageBox.warning(
+                    self, "File Error", f"Error loading acetonitrile spectrum file: {str(e)}"
+                )
+                self.acn_file_input.setText("")
+                self.acetonitrile_spectrum = None
+                self.calibrate_btn.setEnabled(False)
+
+    def accept(self):
+        """Override accept() to validate and collect all data."""
+        if self.neon_spectrum is None or self.acetonitrile_spectrum is None:
+            QMessageBox.warning(
+                self,
+                "Missing Data",
+                "Both neon and acetonitrile spectra are required for calibration.",
+            )
+            return
+
+        # Get the excitation wavelength
+        try:
+            excitation_wavelength = float(self.excitation_input.text())
+            if excitation_wavelength <= 0:
+                raise ValueError("Excitation wavelength must be positive")
+        except ValueError:
+            QMessageBox.warning(
+                self,
+                "Invalid Input",
+                "Please enter a valid positive number for excitation wavelength.",
+            )
+            return
+
+        # Set the excitation wavelength in the parent's calibrator
+        if self.parent() is not None:
+            self.parent().calibrator.excitation_wavelength_nm = excitation_wavelength
+
+        # Continue with accept
+        super().accept()
 
 
 # Worker for Acquisition Mode
@@ -555,6 +918,9 @@ class AcquisitionWorker(QThread):
         self.reverse_x = reverse_x
         self.num_time_points = num_time_points
         self.time_interval_s = time_interval_s
+
+        # Get the parent window (GUI) to access calibration information
+        self.parent_window = parent
 
         # List to store spectra for the current position
         self.spectrum_list = []
@@ -617,6 +983,20 @@ class AcquisitionWorker(QThread):
             "ReverseX": self.reverse_x,
         }
 
+        # Add calibration information if not already present
+        if "Calibration" not in _metadata:
+            if (
+                self.parent_window is not None
+                and hasattr(self.parent_window, "calibration_active")
+                and self.parent_window.calibration_active
+            ):
+                _metadata["Calibration"] = {
+                    "Applied": True,
+                    "ExcitationWavelength": self.parent_window.calibrator.excitation_wavelength_nm,
+                }
+            else:
+                _metadata["Calibration"] = {"Applied": False}
+
         with open(self.exp_path / (_filename + ".json"), "w") as f:
             json.dump(_metadata, f)
 
@@ -629,7 +1009,8 @@ class AcquisitionWorker(QThread):
 
         img_spectrum = image_to_spectrum(image)
 
-        x = np.linspace(0, len(img_spectrum) - 1, len(img_spectrum))
+        # Create x-axis values as pixel indices
+        x = np.arange(len(img_spectrum))
 
         # Add the new spectrum to our list
         self.spectrum_list.append(img_spectrum)
@@ -647,8 +1028,40 @@ class AcquisitionWorker(QThread):
 
         # If this was the final spectrum in the average, save data and reset for next position
         if current_count == self.n_averages:
-            # Save the average spectrum and metadata
-            write_spectrum(self.exp_path / (fname + ".csv"), x, running_avg)
+            # Check if calibration is active and parent exists
+            if (
+                self.parent_window is not None
+                and hasattr(self.parent_window, "calibration_active")
+                and self.parent_window.calibration_active
+            ):
+                # Apply calibration to get wavenumbers
+                wavenumbers = self.parent_window.calibrator.apply_calibration(x)
+
+                # Save with calibrated wavenumbers (3-column format)
+                write_spectrum(
+                    self.exp_path / (fname + ".csv"),
+                    x,  # Pixel indices
+                    running_avg,  # Intensity values
+                    wavenumbers=wavenumbers,  # Calibrated wavenumbers
+                )
+
+                # Add calibration info to metadata
+                metadata["Calibration"] = {
+                    "Applied": True,
+                    "ExcitationWavelength": self.parent_window.calibrator.excitation_wavelength_nm,
+                }
+            else:
+                # Save without calibration (2-column format)
+                write_spectrum(
+                    self.exp_path / (fname + ".csv"),
+                    x,  # Pixel indices
+                    running_avg,  # Intensity values
+                )
+
+                # Note that calibration was not applied
+                metadata["Calibration"] = {"Applied": False}
+
+            # Save metadata
             self._save_metadata(fname, metadata)
 
             # Clear the spectrum list for the next position
