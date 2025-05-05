@@ -600,7 +600,7 @@ class AutoOpenRamanGUI(QMainWindow):
     def browse_experiment_dir(self):
         """Open directory dialog to select experiment directory"""
         dir_path = QFileDialog.getExistingDirectory(
-            self, "Select Experiment Directory", config_profile.save_dir
+            self, "Select Experiment Directory", str(config_profile.save_dir)
         )
         if dir_path:
             # Get relative path from save_dir if possible
