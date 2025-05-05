@@ -67,6 +67,9 @@ class CameraWorker(QThread):
                 )
                 spectrum = image_to_spectrum(image_2d)
 
+                # Convert to float64 to allow for negative values after background subtraction
+                spectrum = spectrum.astype(np.float64)
+
                 # Store the spectrum for potential background capture
                 self.last_spectrum = spectrum.copy()
 
@@ -526,8 +529,8 @@ class AutoOpenRamanGUI(QMainWindow):
         if self.background_active and self.background_spectrum is not None:
             # Handle different lengths if they occur
             if len(spectrum) == len(self.background_spectrum):
-                # Subtract background - make sure we don't go below zero
-                subtracted_spectrum = np.maximum(spectrum - self.background_spectrum, 0)
+                # Subtract background - allow negative values
+                subtracted_spectrum = spectrum - self.background_spectrum
                 # Process the subtracted spectrum
                 processed_spectrum = self.process_spectrum(subtracted_spectrum)
                 # Set title to indicate background subtraction

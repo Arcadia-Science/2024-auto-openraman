@@ -224,6 +224,67 @@ def test_spectrum_processing(gui_window):
     assert result[50] < 100
 
 
+def test_background_subtraction(gui_window):
+    """Test that background subtraction works correctly, including negative values."""
+    from unittest.mock import MagicMock
+
+    import numpy as np
+
+    # Create mock spectra
+    background_spectrum = np.ones(100) * 10  # Background with intensity 10
+    sample_spectrum = np.ones(100) * 5  # Sample with lower intensity (5)
+
+    # Areas where sample has higher intensity than background
+    sample_spectrum[30:40] = 15  # Higher signal in this region
+
+    # Store the background
+    gui_window.background_spectrum = background_spectrum.copy()
+    gui_window.background_active = True
+
+    # Mock the plot for update tests
+    gui_window.plot = MagicMock()
+    gui_window.plot_widget = MagicMock()
+
+    # Test update_live_plot with background subtraction
+    gui_window.update_live_plot(sample_spectrum)
+
+    # Get the data passed to plot.setData()
+    y_data = gui_window.plot.setData.call_args[0][1]
+
+    # Check that the subtraction worked properly
+    # 1. Negative values where background > sample (most of the spectrum)
+    assert y_data[0] < 0
+    assert y_data[0] == -5  # 5 - 10 = -5
+
+    # 2. Positive values where sample > background (positions 30-39)
+    assert y_data[35] > 0
+    assert y_data[35] == 5  # 15 - 10 = 5
+
+    # Now test with float64 data
+    # Create a more realistic scenario with both float types
+    background_float = np.ones(100, dtype=np.float64) * 1000
+    sample_float = np.ones(100, dtype=np.float64) * 2000
+
+    # Simulate areas with lower signal than background
+    sample_float[60:70] = 500  # Lower signal in this region
+
+    # Store the background
+    gui_window.background_spectrum = background_float.copy()
+
+    # Test update_live_plot with background subtraction
+    gui_window.update_live_plot(sample_float)
+
+    # Get the data passed to plot.setData()
+    y_data = gui_window.plot.setData.call_args[0][1]
+
+    # Check proper subtraction in regions where sample > background
+    assert y_data[0] == 1000  # 2000 - 1000 = 1000
+
+    # Check negative values where background > sample
+    assert y_data[65] == -500  # 500 - 1000 = -500
+    assert y_data[65] < 0  # Confirm we have negative values
+
+
 # Tests adapted from test_acq.py
 def test_acq_worker_no_args(app, real_pycromanager):
     """Test acquisition worker with default settings."""
