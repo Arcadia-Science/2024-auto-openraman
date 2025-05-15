@@ -23,38 +23,52 @@ pip install -e .
 
 After installation, the package can be used with the command-line interface. The package provides a unified GUI that combines both live and acquisition modes, as well as legacy commands for backward compatibility:
 
-### Unified GUI
+### AutoOpenRaman GUI
 
 - `autoopenraman`: Launches the unified GUI with both live and acquisition modes
 - `autoopenraman gui`: Same as above, explicitly launching the unified GUI
+- `autoopenraman gui --debug`: Runs in debug mode for testing (runs for 5 seconds then quits)
 
 The unified GUI provides a tabbed interface where you can switch between:
 - **Live Mode**: Real-time spectrum visualization with filtering options
 - **Acquisition Mode**: Configure and run automated acquisitions across multiple positions
 
-### Legacy CLI Commands
+## Features
 
-The following commands are maintained for backward compatibility:
+### Live Mode Features
+- **Real-time visualization**: Continuous spectrum display from the spectrometer
+- **Background subtraction**: Capture, store, and subtract background spectra to highlight sample features
+- **Median filtering**: Apply configurable kernel size median filtering to reduce noise
+- **X-axis reversal**: Option to reverse the x-axis for compatibility with different spectrometer orientations
 
-- `autoopenraman live`: Acquisition in live mode (original GUI)
-- `autoopenraman acq`: Acquisition across multiple times/positions
+### Acquisition Mode Features
+- **Multi-position acquisition**: Acquire spectra at multiple stage positions defined in a Micro-Manager position list file
+- **Spectra averaging**: Configurable number of acquisitions to average per position
+- **Position randomization**: Option to randomize the order of stage positions during acquisition
+- **Timelapse acquisition**: Configure multiple time points with specified intervals
+- **Automatic file saving**: Saves spectra and metadata to CSV and JSON files
 
-For details on running, see the help message for each command:
+### Calibration Features
+- **Wavenumber calibration**: Two-step calibration process using neon lamp and acetonitrile reference spectra
+- **Save/load calibrations**: Save calibration for later use or load previously saved calibrations
+- **Adjustable excitation wavelength**: Configure the excitation wavelength for accurate Raman shift calculation
 
-```bash
-autoopenraman --help
-autoopenraman live --help
-autoopenraman acq --help
-```
+## Hardware Requirements
+
+- A computer running Windows, macOS, or Linux with Python 3.10-3.12
+- [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) (tested with v2.0.3-20241016)
+- Spectrometer device supported by Micro-Manager
+- Optional: XY stage for multi-position acquisition
+- Optional: Shutter device for controlling laser exposure
 
 ### Running tests with no hardware connected
 
-To run the tests, first copy the configuration file template to your home directory:
+To run the tests, first copy the configuration file template to your home directory and rename it to `profile.yml`.
 
 On Mac:
 
 ```bash
-cp .sample_autoopenraman_profile.yml ~/.config/autoopenraman/profile.yml
+cp .sample_autoopenraman_profile.yml ~/autoopenraman/profile.yml
 ```
 
 On Windows:
@@ -69,13 +83,95 @@ Run Micro-Manager with the configuration `autoopenraman_mmconfig_demo.cfg` found
 
 In Micro-Manager, go to Tools>Options and enable the checkbox "Run pycro-manager server on port 4827". You will only need to do this once.
 
-If this is your first time running
-
 Then, run the tests:
 
 ```bash
 pytest -v
 ```
+
+## Configuration
+
+### Profile Configuration
+
+AutoOpenRaman uses `profile.yml` to track hardware connections and configurations. The file is located in the `~/.autoopenraman` directory on Mac and Linux, and in `%USERPROFILE%\autoopenraman` on Windows.
+
+The profile includes the following key settings:
+
+```yaml
+# Default environment (testing or deployment)
+environment: testing
+
+# Testing environment settings (uses simulated devices)
+testing:
+  save_dir: ~/autoopenraman/data
+  shutter_name: DemoShutter
+
+# Deployment environment settings (for real hardware)
+deployment:
+  save_dir: ~/experiments/raman_data
+  shutter_name: ArduinoShutter  # Replace with your actual shutter device name
+```
+
+When using real hardware, it is recommended to set the environment to `deployment` in the `profile.yml` file and update the corresponding section with your hardware information.
+
+Set `save_dir` to the default directory where you want to save the acquired spectra. This directory will be created if it does not exist.
+
+If using a real shutter, set `shutter_name` to match the name of the shutter in Micro-Manager.
+
+## Calibration Guide
+
+AutoOpenRaman provides a two-step calibration process to convert from pixel coordinates to Raman shift (wavenumbers):
+
+1. **Rough calibration** using a neon lamp spectrum to establish pixel-to-wavelength relationship
+2. **Fine calibration** using acetonitrile reference spectrum to convert wavelengths to accurate Raman shifts
+
+### Calibration Procedure
+
+1. In the GUI, click the "Calibrate" button
+2. Select a neon lamp reference spectrum file (CSV format)
+3. Select an acetonitrile reference spectrum file (CSV format)
+4. Enter the excitation laser wavelength (default: 532 nm)
+5. Click "Calibrate" to perform the calibration
+6. Use "Save Calibration" to save the calibration for future use
+
+The software identifies peaks in these reference spectra and matches them to known reference values:
+- Neon peaks at specific wavelengths (585.249 - 653.288 nm)
+- Acetonitrile peaks at specific Raman shifts (918, 1376, 2249, 2942, 2999 cm⁻¹)
+
+After calibration, you can switch between "Pixels" and "Wavenumbers (cm⁻¹)" display modes using the dropdown menu.
+
+### Data Output Format
+
+#### Spectrum Files
+Spectra are saved in CSV format with either 2 or 3 columns:
+- Without calibration: `Pixel, Intensity`
+- With calibration: `Pixel, Wavenumber (cm⁻¹), Intensity`
+
+#### Metadata Files
+Each spectrum has an accompanying JSON metadata file with the same base filename (but `.json` extension) containing:
+
+1. **Acquisition Parameters**:
+   - `Number of averages`: Number of spectra averaged for each measurement
+   - `Stage position file`: Path to the position list file used
+   - `DateTime`: Timestamp of acquisition (YYYY-MM-DD HH:MM:SS)
+
+2. **Timelapse Information**:
+   - `NumTimePoints`: Number of time points in the timelapse
+   - `TimeIntervalSeconds`: Interval between time points in seconds
+
+3. **Processing Parameters**:
+   - `MedianFilter`: Settings for filtering (`Applied` boolean and `KernelSize`)
+   - `ReverseX`: Whether the X-axis was reversed
+
+4. **Calibration Information**:
+   - `Applied`: Whether calibration was applied
+   - `ExcitationWavelength`: Laser wavelength in nm (if calibrated)
+
+5. **Position Information**:
+   - `PositionName`: Name of the stage position from MM position list
+   - Time point information from the acquisition
+
+This metadata provides complete context for interpreting each spectrum and reproducing acquisition settings.
 
 ### Managing dependencies
 

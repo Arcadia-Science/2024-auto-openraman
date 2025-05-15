@@ -4,6 +4,14 @@ import yaml
 
 
 class AutoOpenRamanProfile:
+    """Class to manage the AutoOpenRaman profile.
+    The profile is stored in a yaml file in the home directory of the user.
+    The profile contains the following information:
+    - environment: The environment to use, e.g. "Deployment" or "Testing".
+    - save_dir: The directory to save the data.
+    - shutter_name: The name of the shutter to use.
+    """
+
     def __init__(self):
         # profile path is in the home dir of user
         self._profile_path = Path.home() / "autoopenraman" / "profile.yml"
@@ -42,16 +50,6 @@ class AutoOpenRamanProfile:
         self.save_dir.mkdir(parents=True, exist_ok=True)
 
         self.shutter_name = self._profile[self.environment].get("shutter_name", None)
-
-        self.spectrometer = self._profile[self.environment].get("spectrometer", None)
-        if self.spectrometer is None:
-            raise ValueError("spectrometer field not found in profile.")
-
-        self.simulate_spectrometer = self._profile[self.environment].get(
-            "simulate_spectrometer", None
-        )
-        if self.simulate_spectrometer is None:
-            raise ValueError("simulate_spectrometer field not found in profile.")
 
         # additional settings should be added here e.g.
         # self.light_source = self._profile[self.environment].get('light_source', None)

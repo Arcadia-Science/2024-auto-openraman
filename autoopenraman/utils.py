@@ -7,6 +7,36 @@ from typing import Iterable, Optional, Tuple
 import numpy as np
 from scipy.signal import find_peaks, medfilt
 
+# Calibration Constants
+NEON_PEAKS_NM = np.array(
+    [
+        585.249,
+        588.189,
+        594.483,
+        607.434,
+        609.616,
+        614.306,
+        616.359,
+        621.728,
+        626.649,
+        630.479,
+        633.443,
+        638.299,
+        640.225,
+        650.653,
+        653.288,
+    ]
+)
+
+ACETONITRILE_PEAKS_CM1 = np.array([918, 1376, 2249, 2942, 2999])
+
+# Default parameters
+DEFAULT_EXCITATION_WAVELENGTH_NM = 532.0
+DEFAULT_KERNEL_SIZE = 5
+DEFAULT_ROUGH_CALIBRATION_RESIDUALS_THRESHOLD = 1e0
+DEFAULT_FINE_CALIBRATION_RESIDUALS_THRESHOLD = 1e2
+MIN_PEAK_PROMINENCE = 0.05
+
 
 def image_to_spectrum(img: np.ndarray) -> np.ndarray:
     """
@@ -131,37 +161,6 @@ def extract_stage_positions(
 
     labels = labels.tolist()
     return coordinates_array, labels
-
-
-# Calibration Constants
-NEON_PEAKS_NM = np.array(
-    [
-        585.249,
-        588.189,
-        594.483,
-        607.434,
-        609.616,
-        614.306,
-        616.359,
-        621.728,
-        626.649,
-        630.479,
-        633.443,
-        638.299,
-        640.225,
-        650.653,
-        653.288,
-    ]
-)
-
-ACETONITRILE_PEAKS_CM1 = np.array([918, 1376, 2249, 2942, 2999])
-
-# Default parameters
-DEFAULT_EXCITATION_WAVELENGTH_NM = 532.0
-DEFAULT_KERNEL_SIZE = 5
-DEFAULT_ROUGH_CALIBRATION_RESIDUALS_THRESHOLD = 1e0
-DEFAULT_FINE_CALIBRATION_RESIDUALS_THRESHOLD = 1e2
-MIN_PEAK_PROMINENCE = 0.05
 
 
 def find_n_most_prominent_peaks(
