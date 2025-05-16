@@ -142,6 +142,93 @@ def acq(
 
 @cli.command()
 @click.option(
+    "-n", "--n-averages", type=int, help="Number of averages for each acquisition", default=1
+)
+@click.option(
+    "-d",
+    "--exp-dir",
+    type=click.Path(),
+    help="Folder where spectra will be saved\
+        (parent path defined in profile)",
+    default="",
+)
+@click.option(
+    "-s",
+    "--sync-file",
+    type=click.Path(),
+    help="Path to the sync file used for triggering acquisitions",
+    default="sync.txt",
+)
+@click.option(
+    "--wasatch-integration-time-ms",
+    type=int,
+    help="Integration time for Wasatch spectrometer (ms), default: 100",
+    default=100,
+)
+@click.option(
+    "--wasatch-laser-power-mw",
+    type=int,
+    help="Laser power for Wasatch spectrometer (mW), default: 10",
+    default=10,
+)
+@click.option(
+    "--wasatch-laser-warmup-sec",
+    type=int,
+    help="Laser warmup time for Wasatch spectrometer (seconds), default: 10",
+    default=10,
+)
+@click.option(
+    "--enable-logging",
+    is_flag=True,
+    help="Enable detailed logging of the acquisition process",
+)
+def sync_acq(
+    n_averages,
+    exp_dir,
+    sync_file,
+    wasatch_integration_time_ms,
+    wasatch_laser_power_mw,
+    wasatch_laser_warmup_sec,
+    enable_logging,
+):
+    """Start synchronized acquisition mode (Wasatch only).
+
+    Acquisition is triggered by 'ACQ' in the sync file.
+    """
+    click.echo("Synchronized Acquisition mode")
+
+    from autoopenraman.sync_acq import SyncAcquisitionManager
+
+    exp_path = Path(configprofile.save_dir) / exp_dir
+
+    if not exp_path.is_dir():
+        print(f"Creating save directory: {exp_path}")
+        exp_path.mkdir(parents=True)
+    elif len(list(exp_path.glob("*.csv"))) > 0:
+        if not click.confirm(
+            f"Warning: {exp_path} is not empty. Are you sure you want to add files/overwrite?",
+            default=False,
+        ):
+            click.echo("Aborting acquisition...")
+            return
+
+    sync_file_path = Path(sync_file)
+    print(f"Using sync file: {sync_file_path}")
+    print("Waiting for 'ACQ' command in the sync file...")
+
+    SyncAcquisitionManager(
+        n_averages,
+        exp_path,
+        sync_file_path,
+        wasatch_integration_time_ms,
+        wasatch_laser_power_mw,
+        wasatch_laser_warmup_sec,
+        enable_logging,
+    ).run_sync_acquisition()
+
+
+@cli.command()
+@click.option(
     "-f",
     "--file-or-dir",
     type=click.Path(exists=True),
