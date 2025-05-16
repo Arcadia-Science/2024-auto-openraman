@@ -3,7 +3,7 @@
 
 This repo contains a Python package called `autoopenraman`.
 
-This package uses Micro-Manager and Pycro-Manager to interface with the OpenRaman spectrometer. It provides a UI for spectrum visualization and uses the Pycro-Manager backend to control additional hsrdware.
+This package interfaces with Wasatch Photonics spectrometers. It provides a CLI for acquisition and a GUI for live acquisition.
 
 ## Installation
 
@@ -13,11 +13,70 @@ pip install autoopenraman
 
 ## Usage
 
-After installation, the package can be used with the command-line interface. The package provides a command-line interface with the following commands:
+After installation, the package can be used with the command-line interface with the following commands:
 
-- `autoopenraman live`: Acquisition in live mode
+- `autoopenraman live`: Acquisition in live mode with GUI
 - `autoopenraman acq`: Timed acquisition
+- `autoopenraman sync-acq`: Synchronized acquisition triggered by external commands
 - `autoopenraman plot`: Plot collected data
+
+### Live Mode
+
+Live mode provides a real-time GUI for continuous spectrum acquisition and visualization:
+
+```bash
+autoopenraman live [--debug]
+```
+
+Features:
+- Real-time spectrum visualization
+- Interactive interface with PyQt5
+- Continuously updates spectrum from the spectrometer
+- Debug mode (`--debug`) runs for only 5 seconds (useful for testing)
+
+### Acquisition Mode
+
+Acquisition mode performs spectrum collection with various configuration options:
+
+```bash
+autoopenraman acq [OPTIONS]
+```
+
+Key options:
+- `-n, --n-averages INTEGER`: Number of spectra to average (default: 1)
+- `-d, --exp-dir PATH`: Output directory for saving spectra
+- `-p, --position_file PATH`: JSON file with stage positions for automated multi-position acquisition
+- `-r, --randomize-stage-positions`: Randomize the order of stage positions
+- `--shutter`: Close shutter between acquisitions (if available)
+- `--enable-logging`: Enable detailed logging during acquisition
+
+This mode can:
+- Perform single-point acquisitions
+- Automate multi-position data collection
+- Average multiple spectra for better signal-to-noise ratio
+- Save spectra with comprehensive metadata in CSV and JSON formats
+
+### Wasatch Integration
+
+For Wasatch spectrometers, the following CLI parameters are available for both `acq` and `sync_acq` commands:
+
+- `--wasatch-integration-time-ms`: Set integration time in milliseconds (default: 100)
+- `--wasatch-laser-power-mw`: Set laser power in milliwatts (default: 10)
+- `--wasatch-laser-warmup-sec`: Set laser warmup time in seconds (default: 10)
+
+### Synchronized Acquisition
+
+The `sync_acq` command provides an external synchronization mechanism for controlling acquisition through a text file:
+
+```bash
+autoopenraman sync_acq --sync-file /path/to/sync.txt --n-averages 10 --exp-dir my_experiment
+```
+
+The acquisition is triggered when "ACQ" is written to the sync file. The program responds with:
+- "0" when acquisition starts
+- "1" when acquisition completes
+
+This allows for easy integration with external systems and automation scripts.
 
 
 ## Development

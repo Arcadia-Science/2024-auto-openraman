@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import QApplication
 from autoopenraman import configprofile
 from autoopenraman.acq import AcquisitionManager
 from autoopenraman.live import LiveModeManager
-from autoopenraman.plot import SpectrumPlotter
 
 
 @click.group()
@@ -225,20 +224,6 @@ def sync_acq(
         wasatch_laser_warmup_sec,
         enable_logging,
     ).run_sync_acquisition()
-
-
-@cli.command()
-@click.option(
-    "-f",
-    "--file-or-dir",
-    type=click.Path(exists=True),
-    help="Path to a CSV file or a directory of CSV files.",
-    required=True,
-)
-def plot(file_or_dir):
-    """Plot spectrum of collected data (file or directory)"""
-    click.echo("Plot mode")
-    SpectrumPlotter(file_or_dir).run()
 
 
 def main():
