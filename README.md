@@ -1,9 +1,11 @@
-
 # AutoOpenRaman
 
 This repo contains a Python package called `autoopenraman`.
 
 This package uses Micro-Manager and Pycro-Manager to interface with the OpenRaman spectrometer. It provides a UI for spectrum visualization and uses the Pycro-Manager backend to control additional hardware.
+
+![neon-livemode-trimmed-cropped](https://github.com/user-attachments/assets/112d72d0-c514-4c67-b598-cf7b13f4f842)
+
 
 ## Installation
 
