@@ -58,7 +58,7 @@ def write_spectrum(
     # Set default header based on whether wavenumbers are provided
     if header is None:
         if wavenumbers is not None:
-            header = ["Pixel", "Wavenumber (cm⁻¹)", "Intensity"]
+            header = ["Pixel", "Wavenumber (cm-1)", "Intensity"]
         else:
             header = ["Pixel", "Intensity"]
 
