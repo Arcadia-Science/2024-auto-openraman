@@ -29,9 +29,8 @@ from pyqtgraph import PlotWidget
 from scipy.signal import medfilt
 
 from autoopenraman import config_profile
+from autoopenraman.calibration import DEFAULT_EXCITATION_WAVELENGTH_NM, RamanCalibrator
 from autoopenraman.utils import (
-    DEFAULT_EXCITATION_WAVELENGTH_NM,
-    RamanCalibrator,
     extract_stage_positions,
     image_to_spectrum,
     write_spectrum,
