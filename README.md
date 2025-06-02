@@ -15,7 +15,7 @@ Then, clone the repository, install dependencies, and install the package:
 ```bash
 git clone https://github.com/Arcadia-Science/2024-auto-openraman
 cd 2024-auto-openraman
-conda create -n autoopenraman-dev python=3.12
+conda create -n autoopenraman-dev python=3.12.7
 conda activate autoopenraman-dev
 poetry install --no-root --with dev
 pip install -e .
@@ -64,7 +64,7 @@ The GUI provides a unified interface where you can switch between:
 - Optional: XY stage for multi-position acquisition
 - Optional: Shutter device for controlling laser exposure
 
-### Running tests with no hardware connected
+## Testing
 
 To run the tests, first copy the configuration file template to your home directory and rename it to `profile.yml`.
 
