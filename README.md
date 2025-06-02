@@ -23,15 +23,16 @@ pip install -e .
 
 ## Usage
 
-After installation, the package can be used with the command-line interface. The package provides a unified GUI that combines both live and acquisition modes, as well as legacy commands for backward compatibility:
+After installation, launch the application with:
 
-### AutoOpenRaman GUI
+```bash
+autoopenraman
+```
 
-- `autoopenraman`: Launches the unified GUI with both live and acquisition modes
-- `autoopenraman gui`: Same as above, explicitly launching the unified GUI
-- `autoopenraman gui --debug`: Runs in debug mode for testing (runs for 5 seconds then quits)
+Optional flags:
+- `autoopenraman --debug`: Runs in debug mode for testing (runs for 5 seconds then quits)
 
-The unified GUI provides a tabbed interface where you can switch between:
+The GUI provides a unified interface where you can switch between:
 - **Live Mode**: Real-time spectrum visualization with filtering options
 - **Acquisition Mode**: Configure and run automated acquisitions across multiple positions
 
@@ -57,9 +58,9 @@ The unified GUI provides a tabbed interface where you can switch between:
 
 ## Hardware Requirements
 
-- A computer running Windows, macOS, or Linux with Python 3.10-3.12
+- A computer running Windows (tested), macOS (tested), or Linux (not tested)
 - [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) (tested with v2.0.3-20241016)
-- Spectrometer device supported by Micro-Manager
+- [OpenRAMAN spectrometer](https://www.open-raman.org/) camera, connected to the PC by USB
 - Optional: XY stage for multi-position acquisition
 - Optional: Shutter device for controlling laser exposure
 
