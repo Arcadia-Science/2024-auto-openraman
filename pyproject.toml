@@ -49,6 +49,12 @@ pathlib = "^1.0.1"
 tk = "^0.1.0"
 pycromanager = {git = "https://github.com/micro-manager/pycro-manager.git"}
 pyqt5 = "^5.15.11"
+
+# Currently, it is necessary to pin pyqt5-qt5 to 5.15.2 on Windows only to avoid installation error
+pyqt5-qt5 = [
+    {platform = "darwin", version = "^5.15.17"},
+    {platform = "win32", version = "5.15.2"}]
+
 pyqtgraph = "^0.13.7"
 arcadia-pycolor = "^0.6.2"
 
