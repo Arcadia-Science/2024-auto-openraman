@@ -57,6 +57,7 @@ pyqt5-qt5 = [
 
 pyqtgraph = "^0.13.7"
 arcadia-pycolor = "^0.6.2"
+ramanspy = "^0.2.10"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "3.5.0"
