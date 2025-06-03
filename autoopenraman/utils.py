@@ -1,7 +1,8 @@
 import csv
 import json
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -30,9 +31,9 @@ def image_to_spectrum(img: np.ndarray) -> np.ndarray:
 
 def write_spectrum(
     file_path: Path,
-    x: Iterable[float],
-    y: Iterable[float],
-    wavenumbers: Optional[Iterable[float]] = None,
+    x: Sequence[float],
+    y: Sequence[float],
+    wavenumbers: Optional[Sequence[float]] = None,
     header: Optional[list] = None,
 ) -> None:
     """

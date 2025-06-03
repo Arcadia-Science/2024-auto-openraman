@@ -1,6 +1,6 @@
 import pickle
 from pathlib import Path
-from typing import Tuple
+from typing import Optional
 
 import numpy as np
 from scipy.signal import find_peaks, medfilt
@@ -71,7 +71,7 @@ def find_n_most_prominent_peaks(
 
 def rescale_axis_via_least_squares_fit(
     source_points: np.ndarray, target_points: np.ndarray, all_source_points: np.ndarray
-) -> Tuple[np.ndarray, float]:
+) -> tuple[np.ndarray, float]:
     """
     Rescale source points to target points using least squares fit.
 
@@ -98,7 +98,7 @@ def rescale_axis_via_least_squares_fit(
 
     # Calculate residuals for the fit points
     predicted_points = np.polyval(coeffs, source_points)
-    residuals = np.sum((predicted_points - target_points) ** 2)
+    residuals = float(np.sum((predicted_points - target_points) ** 2))
 
     return transformed_points, residuals
 
@@ -150,10 +150,10 @@ class RamanCalibrator:
         self.fine_calibration_residuals_threshold = fine_calibration_residuals_threshold
 
         # Calibration data
-        self.pixel_indices = None  # Original pixel indices
+        self.pixel_indices = np.array([])  # Original pixel indices initialized as an empty array
         self.rough_calibration_wavelengths = None  # Wavelengths from rough calibration
         self.wavenumbers = None  # Final calibrated wavenumbers
-        self.calibration_coefficients = {
+        self.calibration_coefficients: dict[str, Optional[np.ndarray]] = {
             "rough": None,  # Coefficients for pixel to wavelength
             "fine": None,  # Coefficients for rough wavenumber to final wavenumber
         }
@@ -195,7 +195,7 @@ class RamanCalibrator:
 
         return self.wavenumbers
 
-    def _rough_calibration(self, neon_spectrum: np.ndarray) -> Tuple[np.ndarray, float]:
+    def _rough_calibration(self, neon_spectrum: np.ndarray) -> tuple[np.ndarray, float]:
         """
         Perform rough calibration using neon spectrum to map pixels to wavelengths.
 
@@ -231,7 +231,7 @@ class RamanCalibrator:
 
     def _fine_calibration(
         self, acetonitrile_spectrum: np.ndarray, rough_wavenumbers: np.ndarray
-    ) -> Tuple[np.ndarray, float]:
+    ) -> tuple[np.ndarray, float]:
         """
         Perform fine calibration using acetonitrile spectrum.
 

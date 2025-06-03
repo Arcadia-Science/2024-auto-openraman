@@ -58,8 +58,8 @@ class CameraWorker(QThread):
 
             try:
                 # Acquire image
-                self._core.snap_image()
-                tagged_image = self._core.get_tagged_image()
+                self._core.snap_image()  # type: ignore
+                tagged_image = self._core.get_tagged_image()  # type: ignore
                 image_2d = np.reshape(
                     tagged_image.pix,
                     newshape=[-1, tagged_image.tags["Height"], tagged_image.tags["Width"]],
@@ -141,7 +141,7 @@ class AutoOpenRamanGUI(QMainWindow):
         # Debug mode timer
         if self.debug:
             print("Debug mode enabled")
-            QTimer.singleShot(5000, self.close)
+            QTimer.singleShot(5000, self.close)  # type: ignore
 
     def create_mode_selector(self):
         """Create the mode selection buttons at the top of the window"""
@@ -448,7 +448,8 @@ class AutoOpenRamanGUI(QMainWindow):
         """Toggle visibility of current measurement in acquisition mode."""
         show_current = self.show_current_check.isChecked()
         if hasattr(self, "current_spectrum_plot"):
-            self.current_spectrum_plot.setVisible(show_current)
+            if self.current_spectrum_plot is not None:
+                self.current_spectrum_plot.setVisible(show_current)
 
     def start_live_acquisition(self):
         """Start the worker thread for live acquisition."""
@@ -485,13 +486,18 @@ class AutoOpenRamanGUI(QMainWindow):
 
     def _do_store_background(self):
         """Internal method to actually store the background after pausing acquisition."""
-        if not hasattr(self.worker, "last_spectrum") or self.worker.last_spectrum is None:
+        if (
+            self.worker is None
+            or not hasattr(self.worker, "last_spectrum")
+            or self.worker.last_spectrum is None
+        ):
             QMessageBox.warning(
                 self,
                 "Background Storage",
                 "No spectrum available. Please wait for at least one spectrum to be acquired.",
             )
-            self.worker.pause_acquisition = False
+            if self.worker and self.worker.isRunning():
+                self.worker.pause_acquisition = False
             return
 
         # Store the background spectrum (raw, unprocessed)
@@ -1008,7 +1014,7 @@ class CalibrationDialog(QDialog):
 
         # Set the excitation wavelength in the parent's calibrator
         if self.parent() is not None:
-            self.parent().calibrator.excitation_wavelength_nm = excitation_wavelength
+            self.parent().calibrator.excitation_wavelength_nm = excitation_wavelength  # type: ignore
 
         # Continue with accept
         super().accept()
@@ -1068,11 +1074,11 @@ class AcquisitionWorker(QThread):
             shutter_name = config_profile.shutter_name
 
             try:
-                self.core.set_shutter_device(shutter_name)
+                self.core.set_shutter_device(shutter_name)  # type: ignore
             except ValueError as e:
                 raise ValueError(f"Shutter device {shutter_name} not found in Micro-Manager") from e
 
-            self.core.set_auto_shutter(False)
+            self.core.set_auto_shutter(False)  # type: ignore
 
             # close shutter
             self._set_shutter_open_safe(is_open=False)
@@ -1080,15 +1086,15 @@ class AcquisitionWorker(QThread):
     def _set_shutter_open_safe(self, is_open: bool) -> None:
         """Set the shutter open safely."""
         # if the shutter is already in the desired state, do nothing
-        if self.core.get_shutter_open() == is_open:
+        if self.core.get_shutter_open() == is_open:  # type: ignore
             print(f"Shutter is already {'open' if is_open else 'closed'}")
             return
 
         # if the shutter is not in the desired state, try to set it
-        self.core.set_shutter_open(is_open)
+        self.core.set_shutter_open(is_open)  # type: ignore
 
         # if the shutter is still not in the desired state, raise an error
-        if self.core.get_shutter_open() != is_open:
+        if self.core.get_shutter_open() != is_open:  # type: ignore
             raise ValueError(f"Shutter could not be set to {'open' if is_open else 'closed'}")
 
         print(f"Shutter {'opened' if is_open else 'closed'}")
@@ -1167,7 +1173,7 @@ class AcquisitionWorker(QThread):
                 # Save with calibrated wavenumbers (3-column format)
                 write_spectrum(
                     self.exp_path / (fname + ".csv"),
-                    x,  # Pixel indices
+                    x.tolist(),  # Pixel indices
                     running_avg,  # Intensity values
                     wavenumbers=wavenumbers,  # Calibrated wavenumbers
                 )
@@ -1181,7 +1187,7 @@ class AcquisitionWorker(QThread):
                 # Save without calibration (2-column format)
                 write_spectrum(
                     self.exp_path / (fname + ".csv"),
-                    x,  # Pixel indices
+                    x.tolist(),  # Pixel indices
                     running_avg,  # Intensity values
                 )
 
@@ -1198,17 +1204,17 @@ class AcquisitionWorker(QThread):
         """Run the acquisition."""
         start = time.time()
 
-        with Acquisition(show_display=False) as acq:
+        with Acquisition(show_display=False) as acq:  # type: ignore
             event_stack = multi_d_acquisition_events(
                 num_time_points=self.num_time_points,
-                xy_positions=self.xy_positions,
-                position_labels=self.labels,
+                xy_positions=self.xy_positions,  # type: ignore
+                position_labels=self.labels,  # type: ignore
                 order="pt",
             )
             print("Event stack:")
             print(event_stack)
             events = []
-            for _event in event_stack:
+            for _event in event_stack:  # type: ignore
                 for i in range(self.n_averages):
                     __event = deepcopy(_event)
                     __event["axes"]["avg_index"] = i
@@ -1224,10 +1230,12 @@ class AcquisitionWorker(QThread):
                     self._set_shutter_open_safe(is_open=True)
 
                 print(f"Acquiring image {event["axes"]["avg_index"] + 1}/{self.n_averages}")
-                image, metadata = future.await_image_saved(
-                    None, return_image=True, return_metadata=True
-                )
-                self.process_image(image, metadata)
+                result = future.await_image_saved(None, return_image=True, return_metadata=True)
+                if result is None:
+                    print("Error: No image or metadata returned.")
+                    continue
+                image, metadata = result
+                self.process_image(image, metadata)  # type: ignore
 
                 """
                 Because time_interval_s does not work properly in PycroManager
