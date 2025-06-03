@@ -15,7 +15,7 @@ Then, clone the repository, install dependencies, and install the package:
 ```bash
 git clone https://github.com/Arcadia-Science/2024-auto-openraman
 cd 2024-auto-openraman
-conda create -n autoopenraman-dev python=3.12.7
+conda create -n autoopenraman-dev -f envs/dev.yml
 conda activate autoopenraman-dev
 poetry install --no-root --with dev
 pip install -e .
@@ -64,33 +64,6 @@ The GUI provides a unified interface where you can switch between:
 - Optional: XY stage for multi-position acquisition
 - Optional: Shutter device for controlling laser exposure
 
-## Testing
-
-To run the tests, first copy the configuration file template to your home directory and rename it to `profile.yml`.
-
-On Mac:
-
-```bash
-cp .sample_autoopenraman_profile.yml ~/autoopenraman/profile.yml
-```
-
-On Windows:
-
-```bash
-copy .sample_autoopenraman_profile.yml %USERPROFILE%\autoopenraman\profile.yml
-```
-
-Download the latest version of [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) compatible with your OS. The package was built around `Micro-Manager 2.0.3-20241016` but should work with subsequent nightly builds.
-
-Run Micro-Manager with the configuration `autoopenraman_mmconfig_demo.cfg` found in the root directory of this repo. No physical devices need to be connected to run the tests.
-
-In Micro-Manager, go to Tools>Options and enable the checkbox "Run pycro-manager server on port 4827". You will only need to do this once.
-
-Then, run the tests:
-
-```bash
-pytest -v
-```
 
 ## Configuration
 
@@ -175,6 +148,38 @@ Each spectrum has an accompanying JSON metadata file with the same base filename
    - Time point information from the acquisition
 
 This metadata provides complete context for interpreting each spectrum and reproducing acquisition settings.
+
+## Development
+
+Follow the installation instructions above to set up the development environment.
+
+### Testing
+
+To run the tests, first copy the configuration file template to your home directory and rename it to `profile.yml`.
+
+On Mac:
+
+```bash
+cp .sample_autoopenraman_profile.yml ~/autoopenraman/profile.yml
+```
+
+On Windows:
+
+```bash
+copy .sample_autoopenraman_profile.yml %USERPROFILE%\autoopenraman\profile.yml
+```
+
+Download the latest version of [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) compatible with your OS. The package was built around `Micro-Manager 2.0.3-20250602` but should work with subsequent nightly builds.
+
+Start Micro-Manager with the configuration `autoopenraman_mmconfig_demo.cfg` found in the root directory of this repo. No physical devices need to be connected to run the tests.
+
+In Micro-Manager, go to Tools>Options and enable the checkbox "Run pycro-manager server on port 4827". You will only need to do this once.
+
+Then, run the tests:
+
+```bash
+pytest -v
+```
 
 ### Managing dependencies
 
