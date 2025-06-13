@@ -61,9 +61,13 @@ The GUI provides a unified interface where you can switch between:
 - A computer running Windows (tested), macOS (tested), or Linux (not tested)
 - [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) (tested with v2.0.3-20241016)
 - [OpenRAMAN spectrometer](https://www.open-raman.org/) camera, connected to the PC by USB
-- Optional: XY stage for multi-position acquisition
-- Optional: Shutter device for controlling laser exposure
 
+### Optional Hardware
+- XY stage for multi-position acquisition
+- Arduino/Teensy-controlled shutter device for controlling laser exposure
+- Arduino/Teensy-controlled neon light source for rough calibration
+
+The Arduino firmware for the shutter and neon light source is available in the `arduino` directory of this repository. You can upload it to your Arduino/Teensy board using the Arduino IDE.
 
 ## Configuration
 
