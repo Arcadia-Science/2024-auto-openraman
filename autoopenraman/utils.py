@@ -41,9 +41,9 @@ def write_spectrum(
 
     Parameters:
         file_path (str): The name of the file to write to.
-        x (Iterable): An Iterable of pixel indices.
-        y (Iterable): An Iterable of intensity values corresponding to each pixel.
-        wavenumbers (Iterable, optional): Calibrated wavenumber values. If provided, a 3-column file
+        x (Sequence): An Sequence of pixel indices.
+        y (Sequence): An Sequence of intensity values corresponding to each pixel.
+        wavenumbers (Sequence, optional): Calibrated wavenumber values. If provided, a 3-column file
           is written.
         header (list, optional): A list of header values. Default depends on whether wavenumbers
           are provided.

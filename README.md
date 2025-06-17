@@ -56,11 +56,11 @@ The GUI provides a unified interface where you can switch between:
 - **Save/load calibrations**: Save calibration for later use or load previously saved calibrations
 - **Adjustable excitation wavelength**: Configure the excitation wavelength for accurate Raman shift calculation
 
-## Hardware Requirements
+## Requirements
 
 - A computer running Windows (tested), macOS (tested), or Linux (not tested)
+- [OpenRAMAN spectrometer](https://www.open-raman.org/) camera (Blackfly BFS-U3-31S4M-C; FLIR), connected to the PC by USB. Alternatively, any camera [supported by Micro-Manager](https://micro-manager.org/Device_Support) can be used.
 - [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) (tested with v2.0.3-20241016)
-- [OpenRAMAN spectrometer](https://www.open-raman.org/) camera, connected to the PC by USB
 
 ### Optional Hardware
 - XY stage for multi-position acquisition
@@ -73,7 +73,7 @@ The Arduino firmware for the shutter and neon light source is available in the `
 
 ### Profile Configuration
 
-AutoOpenRaman uses `profile.yml` to track hardware connections and configurations. The file is located in the `~/.autoopenraman` directory on Mac and Linux, and in `%USERPROFILE%\autoopenraman` on Windows.
+AutoOpenRaman uses `profile.yml` to track hardware connections and configurations. The file is located in the `~/autoopenraman` directory on Mac and Linux, and in `%USERPROFILE%\autoopenraman` on Windows.
 
 The profile includes the following key settings:
 
@@ -102,8 +102,8 @@ If using a real shutter, set `shutter_name` to match the name of the shutter in 
 
 AutoOpenRaman provides a two-step calibration process to convert from pixel coordinates to Raman shift (wavenumbers):
 
-1. **Rough calibration** using a neon lamp spectrum to establish pixel-to-wavelength relationship
-2. **Fine calibration** using acetonitrile reference spectrum to convert wavelengths to accurate Raman shifts
+1. **Rough calibration** using a neon lamp spectrum to establish the coarse pixel-to-wavelength relationship
+2. **Fine calibration** using acetonitrile reference spectrum to convert wavelengths to Raman shifts
 
 ### Calibration Procedure
 

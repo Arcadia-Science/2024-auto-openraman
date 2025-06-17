@@ -6,6 +6,7 @@ import numpy as np
 from scipy.signal import find_peaks, medfilt
 
 # Calibration Constants
+# Source: https://physics.nist.gov/PhysRefData/Handbook/Tables/neontable2.htm
 NEON_PEAKS_NM = np.array(
     [
         585.249,
@@ -118,7 +119,8 @@ def calculate_raman_shift(
         np.ndarray - Raman shift in wavenumbers (cm^-1)
     """
     # Convert wavelengths to wavenumbers using the Raman formula
-    return (1.0 / excitation_wavelength_nm - 1.0 / emission_wavelengths_nm) * 1e7
+    nm_to_cm = 1e7
+    return (1.0 / excitation_wavelength_nm - 1.0 / emission_wavelengths_nm) * nm_to_cm
 
 
 class RamanCalibrator:
@@ -160,7 +162,7 @@ class RamanCalibrator:
 
     def calibrate(self, neon_spectrum: np.ndarray, acetonitrile_spectrum: np.ndarray) -> np.ndarray:
         """
-        Perform full calibration using neon and acetonitrile spectra.
+        Perform two-step calibration using (first) neon and (second) acetonitrile spectra.
 
         Parameters:
             neon_spectrum: np.ndarray - Intensity values from neon lamp

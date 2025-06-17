@@ -2,7 +2,9 @@ import json
 import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock
 
+import numpy as np
 import pytest
 from pycromanager import Core, Studio
 from PyQt5.QtWidgets import QApplication
@@ -17,8 +19,7 @@ def real_pycromanager():
     Fixture for real pycromanager Core and Studio instances.
 
     Tests will use the actual MM Core and Studio, allowing for realistic testing
-    with connected hardware. For CI/CD environments without MM, use pytest's
-    --skip-mm flag to skip these tests.
+    with connected hardware.
     """
     try:
         core = Core()
@@ -27,13 +28,10 @@ def real_pycromanager():
         # Initialize core for testing - this ensures we can acquire basic images
         # Only runs this setup once per session
         print("Setting up pycromanager Core")
-        yield {"core": core, "studio": studio}
+        return {"core": core, "studio": studio}
 
     except Exception as e:
         pytest.skip(f"Could not initialize pycromanager: {e}")
-
-    print("Tearing down pycromanager Core")
-    # No explicit cleanup needed for pycromanager
 
 
 @pytest.fixture
@@ -61,7 +59,6 @@ def setup_environment(request, monkeypatch):
 
     # Create a temporary directory to use as save_dir
     temp_dir = tempfile.TemporaryDirectory()
-    monkeypatch.setattr(config_profile, "save_dir", Path(temp_dir.name))
 
     # Initialize the profile
     config_profile.init_profile(env_to_run)
@@ -196,7 +193,6 @@ def test_acquisition_mode_controls(gui_window):
 
 def test_spectrum_processing(gui_window):
     """Test that spectrum processing works correctly."""
-    import numpy as np
 
     # Create a test spectrum
     test_spectrum = np.ones(100)
@@ -226,9 +222,6 @@ def test_spectrum_processing(gui_window):
 
 def test_background_subtraction(gui_window):
     """Test that background subtraction works correctly, including negative values."""
-    from unittest.mock import MagicMock
-
-    import numpy as np
 
     # Create mock spectra
     background_spectrum = np.ones(100) * 10  # Background with intensity 10
@@ -410,7 +403,7 @@ def test_acq_worker_with_timelapse(app, real_pycromanager):
             shutter=False,
             randomize_stage_positions=False,
             num_time_points=3,
-            time_interval_s=0.1,  # Short interval for testing
+            time_interval_s=1,  # Short interval for testing
         )
 
         # Run acquisition
@@ -445,7 +438,7 @@ def test_acq_worker_with_timelapse_and_position_file(app, real_pycromanager):
             shutter=False,
             randomize_stage_positions=False,
             num_time_points=3,
-            time_interval_s=0.1,  # Short interval for testing
+            time_interval_s=1,  # Short interval for testing
         )
 
         # Run acquisition

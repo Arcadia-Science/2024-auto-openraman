@@ -593,7 +593,6 @@ class AutoOpenRamanGUI(QMainWindow):
 
         return processed_spectrum
 
-    # Acquisition Mode Functions
     def browse_position_file(self):
         """Open file dialog to select position file"""
         file_path, _ = QFileDialog.getOpenFileName(
@@ -807,34 +806,30 @@ class AutoOpenRamanGUI(QMainWindow):
             self, "Load Calibration File", "", "Calibration Files (*.cal);;All Files (*)"
         )
 
-        if file_path:
-            try:
-                self.calibrator.load_calibration(Path(file_path))
-                self.calibration_active = True
-                self.save_calibration_btn.setEnabled(True)
+        if not file_path:
+            return
+        else:
+            self.calibrator.load_calibration(Path(file_path))
+            self.calibration_active = True
+            self.save_calibration_btn.setEnabled(True)
 
-                # Update the plot if in wavenumber mode
-                if self.x_axis_mode == "wavenumbers":
-                    if self.worker and self.worker.isRunning():
-                        # Live mode will update on next frame
-                        pass
-                    elif hasattr(self, "spectrum_list") and len(self.spectrum_list) > 0:
-                        # Update the acquisition plot
-                        self.update_acq_plot(
-                            None,  # x values will be generated in update_acq_plot
-                            self.spectrum_list[-1],
-                            np.mean(self.spectrum_list, axis=0),
-                            "Current Spectrum",
-                        )
+            # Update the plot if in wavenumber mode
+            if self.x_axis_mode == "wavenumbers":
+                if self.worker and self.worker.isRunning():
+                    # Live mode will update on next frame
+                    pass
+                elif hasattr(self, "spectrum_list") and len(self.spectrum_list) > 0:
+                    # Update the acquisition plot
+                    self.update_acq_plot(
+                        None,  # x values will be generated in update_acq_plot
+                        self.spectrum_list[-1],
+                        np.mean(self.spectrum_list, axis=0),
+                        "Current Spectrum",
+                    )
 
-                QMessageBox.information(
-                    self, "Calibration Loaded", "Calibration file loaded successfully."
-                )
-
-            except Exception as e:
-                QMessageBox.warning(
-                    self, "Load Calibration Error", f"Error loading calibration file: {str(e)}"
-                )
+            QMessageBox.information(
+                self, "Calibration Loaded", "Calibration file loaded successfully."
+            )
 
     def save_calibration(self):
         """Save the current calibration to a file."""
