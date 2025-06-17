@@ -23,20 +23,39 @@ pip install -e .
 
 ## Usage
 
-After installation, launch the application with:
+First, download this repository to your local machine.
+
+Then, copy the configuration file to your home directory and rename it to `profile.yml` like this:
+
+On Mac:
+
+```bash
+cp .sample_autoopenraman_profile.yml ~/autoopenraman/profile.yml
+```
+
+On Windows:
+
+```bash
+copy .sample_autoopenraman_profile.yml %USERPROFILE%\autoopenraman\profile.yml
+```
+
+Download the latest version of [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) compatible with your OS. This package was built around `Micro-Manager 2.0.3-20250602` but should work with subsequent nightly builds.
+
+Start Micro-Manager with the configuration `autoopenraman_mmconfig_demo.cfg` found in the root directory of this repo. No physical devices need to be connected to run tests.
+
+In Micro-Manager, go to Tools>Options and enable the checkbox "Run pycro-manager server on port 4827". You will only need to do this once.
+
+After installation, launch the application GUI with:
 
 ```bash
 autoopenraman
 ```
 
-Optional flags:
-- `autoopenraman --debug`: Runs in debug mode for testing (runs for 5 seconds then quits)
+## Features
 
 The GUI provides a unified interface where you can switch between:
 - **Live Mode**: Real-time spectrum visualization with filtering options
 - **Acquisition Mode**: Configure and run automated acquisitions across multiple positions
-
-## Features
 
 ### Live Mode Features
 - **Real-time visualization**: Continuous spectrum display from the spectrometer
@@ -69,9 +88,7 @@ The GUI provides a unified interface where you can switch between:
 
 The Arduino firmware for the shutter and neon light source is available in the `arduino` directory of this repository. You can upload it to your Arduino/Teensy board using the Arduino IDE.
 
-## Configuration
-
-### Profile Configuration
+## Profile Configuration
 
 AutoOpenRaman uses `profile.yml` to track hardware connections and configurations. The file is located in the `~/autoopenraman` directory on Mac and Linux, and in `%USERPROFILE%\autoopenraman` on Windows.
 
@@ -98,7 +115,7 @@ Set `save_dir` to the default directory where you want to save the acquired spec
 
 If using a real shutter, set `shutter_name` to match the name of the shutter in Micro-Manager.
 
-## Calibration Guide
+## Calibration
 
 AutoOpenRaman provides a two-step calibration process to convert from pixel coordinates to Raman shift (wavenumbers):
 
@@ -159,31 +176,14 @@ Follow the installation instructions above to set up the development environment
 
 ### Testing
 
-To run the tests, first copy the configuration file template to your home directory and rename it to `profile.yml`.
+Make sure the configuration file `profile.yml` is set up correctly and Micro-Manager is running with the demo configuration before running the tests.
 
-On Mac:
-
-```bash
-cp .sample_autoopenraman_profile.yml ~/autoopenraman/profile.yml
-```
-
-On Windows:
-
-```bash
-copy .sample_autoopenraman_profile.yml %USERPROFILE%\autoopenraman\profile.yml
-```
-
-Download the latest version of [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) compatible with your OS. The package was built around `Micro-Manager 2.0.3-20250602` but should work with subsequent nightly builds.
-
-Start Micro-Manager with the configuration `autoopenraman_mmconfig_demo.cfg` found in the root directory of this repo. No physical devices need to be connected to run the tests.
-
-In Micro-Manager, go to Tools>Options and enable the checkbox "Run pycro-manager server on port 4827". You will only need to do this once.
-
-Then, run the tests:
+We use `pytest` for testing. The tests are found in `autoopenraman/tests/test_gui.py`. To run the tests, run the following command from the root directory of the repository:
 
 ```bash
 pytest -v
 ```
+
 
 ### Managing dependencies
 
