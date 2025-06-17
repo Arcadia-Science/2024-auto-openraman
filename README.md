@@ -15,7 +15,7 @@ Then, clone the repository, install dependencies, and install the package:
 ```bash
 git clone https://github.com/Arcadia-Science/2024-auto-openraman
 cd 2024-auto-openraman
-conda create -n autoopenraman-dev -f envs/dev.yml
+conda env create -n autoopenraman-dev -f envs/dev.yml
 conda activate autoopenraman-dev
 poetry install --no-root --with dev
 pip install -e .
