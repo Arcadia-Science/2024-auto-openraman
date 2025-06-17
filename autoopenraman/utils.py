@@ -1,9 +1,12 @@
 import csv
 import json
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 import numpy as np
+
+# Import calibration-related items from the dedicated module
 
 
 def image_to_spectrum(img: np.ndarray) -> np.ndarray:
@@ -27,30 +30,53 @@ def image_to_spectrum(img: np.ndarray) -> np.ndarray:
 
 
 def write_spectrum(
-    file_path: Path, x: Iterable[float], y: Iterable[float], header: Optional[list] = None
+    file_path: Path,
+    x: Sequence[float],
+    y: Sequence[float],
+    wavenumbers: Optional[Sequence[float]] = None,
+    header: Optional[list] = None,
 ) -> None:
     """
-    Write a 2-column CSV file of x and y
+    Write a CSV file of spectrum data with optional calibration.
 
     Parameters:
         file_path (str): The name of the file to write to.
-        x (Iterable): An Iterable of pixel values.
-        y (Iterable): An Iterable of intensity values corresponding to each pixel.
-        header (list, optional): A list of header values. Defaults to `["Pixel", "Intensity"]`.
+        x (Sequence): An Sequence of pixel indices.
+        y (Sequence): An Sequence of intensity values corresponding to each pixel.
+        wavenumbers (Sequence, optional): Calibrated wavenumber values. If provided, a 3-column file
+          is written.
+        header (list, optional): A list of header values. Default depends on whether wavenumbers
+          are provided.
     """
     # Check if the lengths of the arrays match
-    if header is None:
-        header = ["Pixel", "Intensity"]
     if len(x) != len(y):
         raise ValueError("The length of x and y arrays must be the same.")
+
+    # If wavenumbers are provided, ensure the length matches
+    if wavenumbers is not None and len(wavenumbers) != len(x):
+        raise ValueError("The length of wavenumbers array must match the x array.")
+
+    # Set default header based on whether wavenumbers are provided
+    if header is None:
+        if wavenumbers is not None:
+            header = ["Pixel", "Wavenumber (cm-1)", "Intensity"]
+        else:
+            header = ["Pixel", "Intensity"]
 
     with open(file_path, mode="w", newline="") as file:
         writer = csv.writer(file)
         # Write the header
         writer.writerow(header)
+
         # Write the data rows
-        for pixel, intensity in zip(x, y):
-            writer.writerow([pixel, intensity])
+        if wavenumbers is not None:
+            # 3-column format with calibration
+            for pixel, wavenumber, intensity in zip(x, wavenumbers, y):
+                writer.writerow([pixel, wavenumber, intensity])
+        else:
+            # 2-column format without calibration
+            for pixel, intensity in zip(x, y):
+                writer.writerow([pixel, intensity])
 
 
 def extract_stage_positions(

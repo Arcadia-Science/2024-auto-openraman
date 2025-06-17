@@ -4,6 +4,14 @@ import yaml
 
 
 class AutoOpenRamanProfile:
+    """Class to manage the AutoOpenRaman profile.
+    The profile is stored in a yaml file in the home directory of the user.
+    The profile contains the following information:
+    - environment: The environment to use, e.g. "Deployment" or "Testing".
+    - save_dir: The directory to save the data.
+    - shutter_name: The name of the shutter to use.
+    """
+
     def __init__(self):
         # profile path is in the home dir of user
         self._profile_path = Path.home() / "autoopenraman" / "profile.yml"

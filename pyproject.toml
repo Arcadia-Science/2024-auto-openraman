@@ -41,16 +41,26 @@ url = "https://test.pypi.org/legacy/"
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
 matplotlib = "^3.9.2"
-numpy = "1.26.4"
+numpy = "^1.26.4"
 click = "^8.1.7"
 scipy = "^1.14.1"
 pandas = "^2.2.3"
-plotly = "^5.24.1"
 pathlib = "^1.0.1"
 tk = "^0.1.0"
 pycromanager = {git = "https://github.com/micro-manager/pycro-manager.git"}
 pyqt5 = "^5.15.11"
+
+# Currently, it is necessary to pin pyqt5-qt5 to 5.15.2 on Windows only to avoid installation error
+pyqt5-qt5 = [
+    {platform = "darwin", version = "^5.15.17"},
+    {platform = "win32", version = "5.15.2"}]
+
 pyqtgraph = "^0.13.7"
+arcadia-pycolor = "^0.6.2"
+ramanspy = "^0.2.10"
+beautifulsoup4 = "^4.13.4"
+ipykernel = "^6.29.5"
+jupyter = "^1.1.1"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "3.5.0"

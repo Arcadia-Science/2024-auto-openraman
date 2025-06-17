@@ -1,7 +1,7 @@
 /ignore
 
-# Data folders
-data/
+# Artifacts from plotting
+notebooks/figs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
