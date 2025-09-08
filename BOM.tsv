@@ -1,0 +1,22 @@
+Item Name	Quantity	Manufacturer / Source	Part Number / Identifier	Unit Price (USD)	Price (USD)	Source	Notes
+OpenRAMAN Starter Edition	1	OpenRAMAN Project	Starter Edition	$2,600.00	$2,600.00	https://www.open-raman.org/build/starter-edition/download/
+Ø1" Protected Silver Mirror	1	Thorlabs	PF10-03-P01	$60.20	$60.20	https://www.thorlabs.us/thorProduct.cfm?partNumber=PF10-03-P01
+Right-Angle Mirror Mount	1	Thorlabs	KCB1	$165.48	$165.48	https://www.thorlabs.us/thorProduct.cfm?partNumber=KCB1
+Microscope Objective	1	Nikon	Plan Apo λ 4x/0.20 NA	$1,200.00	$1,200.00	https://www.spachoptics.com/Nikon-CFI-Plan-Apo-4x-Lambda-Objective-p/nikon-mrd00045.htm	Cheaper used objectives can also be purchased
+RMS-Threaded Cage Plate	2	Thorlabs	CP42	$38.51	$77.02	https://www.thorlabs.com/thorProduct.cfm?partNumber=CP42
+Cage Rods 1in	8	Thorlabs	EC1	$4.00	$32.00	https://www.thorlabs.com/thorProduct.cfm?partNumber=EC1
+Aluminum Breadboard 300x300mm	1	Thorlabs	MB3030/M	$184.49	$184.49	https://www.thorlabs.us/thorProduct.cfm?partNumber=MB3030/M
+Pillar Post Ø25mm 38mm	4	Thorlabs	RS38P4/M	$28.70	$114.80	https://www.thorlabs.com/thorProduct.cfm?partNumber=RS38P4/M
+Adjustable Height Post Base	4	Thorlabs	RB2/M	$40.36	$161.44	https://www.thorlabs.de/thorProduct.cfm?partNumber=RB2/M
+Manual Lab Jack	1	Thorlabs	L490	$760.11	$760.11	https://www.thorlabs.us/thorProduct.cfm?partNumber=L490
+Motorized XY Stage	1	Prior Scientific (used)	H7550T	$1,745.00	$1,745.00	N/A	Estimate from eBay; verify compatibility with µManager
+Stepper Motor and driver board	1	Amazon	B07VPD4KJD	$2.96	$2.96	https://www.amazon.com/4-Phase-Stepper-ULN2003-Machinery-Raspberry/dp/B07VPD4KJD
+Microcontroller	2	DigiKey	Teensy 4.0	$41.92	$83.84	https://www.digikey.ca/en/maker/platforms/t/teensy
+Neon Indicator Light	1	VCC / DigiKey	1050QC2	$5.85	$5.85	https://www.mouser.com/ProductDetail/VCC/1050QC2
+Fiber Optic Patch Cable	1	Thorlabs	M53L02	$113.00	$113.00	https://www.thorlabs.com/thorproduct.cfm?partnumber=M53L02	Cheaper fiber optics can be used
+FC/PC Fiber Adapter Plate	2	Thorlabs	SM1FC2	$27.00	$54.00	https://www.thorlabs.us/thorProduct.cfm?partNumber=SM1FC2
+Relay Module	1	Amazon	B00E0NTPP4	$7.00	$7.00	N/A	Estimate
+Project Box	2	Amazon	B08P55BZDH	$10.00	$20.00	N/A	Estimate
+Aluminum Extrusion	4	McMaster-Carr	5537T926	$10.00	$40.00	N/A	Estimate
+Black Cardboard	4	Local/Generic	N/A	$2.00	$8.00	Generic material; price varies	Estimate
+				TOTAL	$7,435.19

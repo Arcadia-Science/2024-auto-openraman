@@ -3,6 +3,10 @@ message: If you use this software, please cite the associated publication.
 title: 'AutoOpenRaman: Low-cost, automated Raman spectroscopy'
 doi: 10.57844/arcadia-7vbd-n3ry
 authors:
+- family-names: Bell
+  given-names: Audrey
+  affiliation: Arcadia Science
+  orcid: https://orcid.org/0009-0008-2270-1613
 - family-names: Braverman
   given-names: Ben
   affiliation: Arcadia Science
