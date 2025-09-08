@@ -1,0 +1,47 @@
+cff-version: 1.2.0
+message: If you use this software, please cite the associated publication.
+title: 'AutoOpenRaman: Low-cost, automated Raman spectroscopy'
+doi: 10.57844/arcadia-7vbd-n3ry
+authors:
+- family-names: Braverman
+  given-names: Ben
+  affiliation: Arcadia Science
+  orcid: https://orcid.org/0009-0005-0334-7004
+- family-names: Hochstrasser
+  given-names: Megan L.
+  affiliation: Arcadia Science
+  orcid: https://orcid.org/0000-0002-4404-078X
+- family-names: Kolb
+  given-names: Ilya
+  affiliation: Arcadia Science
+  orcid: https://orcid.org/0000-0001-5100-849X
+- family-names: Mets
+  given-names: David G.
+  affiliation: Arcadia Science
+  orcid: https://orcid.org/0000-0002-0803-0912
+- family-names: Sharma
+  given-names: Sunanda
+  affiliation: Arcadia Science
+  orcid: https://orcid.org/0000-0001-8822-7960
+preferred-citation:
+  title: 'AutoOpenRaman: Low-cost, automated Raman spectroscopy'
+  type: article
+  doi: 10.57844/arcadia-7vbd-n3ry
+  authors:
+  - family-names: Braverman
+    given-names: Ben
+    affiliation: Arcadia Science
+    orcid: https://orcid.org/0009-0005-0334-7004
+  - family-names: Kolb
+    given-names: Ilya
+    affiliation: Arcadia Science
+    orcid: https://orcid.org/0000-0001-5100-849X
+  - family-names: Mets
+    given-names: David G.
+    affiliation: Arcadia Science
+    orcid: https://orcid.org/0000-0002-0803-0912
+  - family-names: Sharma
+    given-names: Sunanda
+    affiliation: Arcadia Science
+    orcid: https://orcid.org/0000-0001-8822-7960
+  year: 2025
