@@ -88,7 +88,7 @@ def _create_mock_position_file(file_path: Path, n_positions: int = 2) -> None:
                                 {"Position_um": {"array": [10.0 * i, 20.0 * i]}},
                             ]
                         },
-                        "Label": {"scalar": f"Position{i+1}"},
+                        "Label": {"scalar": f"Position{i + 1}"},
                     }
                     for i in range(n_positions)
                 ]

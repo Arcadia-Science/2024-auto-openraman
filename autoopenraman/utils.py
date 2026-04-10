@@ -2,7 +2,6 @@ import csv
 import json
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -33,8 +32,8 @@ def write_spectrum(
     file_path: Path,
     x: Sequence[float],
     y: Sequence[float],
-    wavenumbers: Optional[Sequence[float]] = None,
-    header: Optional[list] = None,
+    wavenumbers: Sequence[float] | None = None,
+    header: list | None = None,
 ) -> None:
     """
     Write a CSV file of spectrum data with optional calibration.
@@ -71,11 +70,11 @@ def write_spectrum(
         # Write the data rows
         if wavenumbers is not None:
             # 3-column format with calibration
-            for pixel, wavenumber, intensity in zip(x, wavenumbers, y):
+            for pixel, wavenumber, intensity in zip(x, wavenumbers, y, strict=True):
                 writer.writerow([pixel, wavenumber, intensity])
         else:
             # 2-column format without calibration
-            for pixel, intensity in zip(x, y):
+            for pixel, intensity in zip(x, y, strict=True):
                 writer.writerow([pixel, intensity])
 
 

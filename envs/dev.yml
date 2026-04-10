@@ -1,7 +1,0 @@
-channels:
-  - conda-forge
-dependencies:
-  - pip=24.2
-  - python=3.12.7
-  - pip:
-      - poetry==2.1.3

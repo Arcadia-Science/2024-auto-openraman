@@ -23,7 +23,11 @@ class AutoOpenRamanProfile:
         self._profile = self._load_profile_from_json()
 
         # initialize profile
-        self.init_profile()
+        self.environment = None
+        self.save_dir = None
+        self.shutter_name = None
+        if self._profile:
+            self.init_profile()
 
     def init_profile(self, environment: str | None = None):
         """Initialize the profile.
@@ -61,6 +65,14 @@ class AutoOpenRamanProfile:
             with open(self._profile_path) as file:
                 return yaml.safe_load(file)
 
-        except FileNotFoundError as e:
-            print(f"Profile file not found: {e}")
+        except FileNotFoundError:
+            sample = Path(__file__).parent.parent / ".sample_autoopenraman_profile.yml"
+            if sample.exists():
+                import shutil
+
+                shutil.copy(sample, self._profile_path)
+                print(f"Created default profile at {self._profile_path} from sample.")
+                with open(self._profile_path) as file:
+                    return yaml.safe_load(file)
+            print(f"Profile file not found at {self._profile_path} and no sample profile found.")
             return {}

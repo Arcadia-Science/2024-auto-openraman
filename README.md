@@ -4,38 +4,35 @@ This repo contains a Python package called `autoopenraman`. It uses Micro-Manage
 
 ![neon-livemode-trimmed-cropped](https://github.com/user-attachments/assets/112d72d0-c514-4c67-b598-cf7b13f4f842)
 
+## Figure reproducibility
+
+To reproduce the plots from **Figure 4** of the pub, navigate to the `notebooks` folder and run the notebook `analyze-chlamy-plate.ipynb`.
+
+## Requirements
+
+- A computer running Windows (tested), macOS (tested), or Linux (not tested)
+- [OpenRAMAN spectrometer](https://www.open-raman.org/) camera (Blackfly BFS-U3-31S4M-C; FLIR), connected to the PC by USB. Alternatively, any camera [supported by Micro-Manager](https://micro-manager.org/Device_Support) can be used.
+- [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) (tested with v2.0.3-20241016)
+
+### Optional Hardware
+- XY stage for multi-position acquisition
+- Arduino/Teensy-controlled shutter device for controlling laser exposure
+- Arduino/Teensy-controlled neon light source for rough calibration
+
+The Arduino firmware for the shutter and neon light source is available in the `arduino` directory of this repository. You can upload it to your Arduino/Teensy board using the Arduino IDE.
 
 ## Installation
 
-First, make sure you have [poetry](https://python-poetry.org/docs/#installing-with-pipx) installed.
+First, make sure you have [uv](https://docs.astral.sh/uv/getting-started/installation/) installed.
 
-Then, clone the repository, install dependencies, and install the package:
+Then, clone the repository and install dependencies:
 ```bash
 git clone https://github.com/Arcadia-Science/2024-auto-openraman
 cd 2024-auto-openraman
-conda env create -n autoopenraman-dev -f envs/dev.yml
-conda activate autoopenraman-dev
-poetry install --no-root --with dev
-pip install -e .
+uv sync
 ```
 
 ## Usage
-
-First, download this repository to your local machine.
-
-Then, copy the configuration file to your home directory and rename it to `profile.yml` like this:
-
-On Mac:
-
-```bash
-cp .sample_autoopenraman_profile.yml ~/autoopenraman/profile.yml
-```
-
-On Windows:
-
-```bash
-copy .sample_autoopenraman_profile.yml %USERPROFILE%\autoopenraman\profile.yml
-```
 
 Download the latest version of [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) compatible with your OS. This package was built around `Micro-Manager 2.0.3-20250602` but should work with subsequent nightly builds.
 
@@ -46,7 +43,7 @@ In Micro-Manager, go to Tools>Options and enable the checkbox "Run pycro-manager
 After installation, launch the application GUI with:
 
 ```bash
-autoopenraman
+uv run autoopenraman
 ```
 
 ## Features
@@ -73,22 +70,9 @@ The GUI provides a unified interface where you can switch between:
 - **Save/load calibrations**: Save calibration for later use or load previously saved calibrations
 - **Adjustable excitation wavelength**: Configure the excitation wavelength for accurate Raman shift calculation
 
-## Requirements
-
-- A computer running Windows (tested), macOS (tested), or Linux (not tested)
-- [OpenRAMAN spectrometer](https://www.open-raman.org/) camera (Blackfly BFS-U3-31S4M-C; FLIR), connected to the PC by USB. Alternatively, any camera [supported by Micro-Manager](https://micro-manager.org/Device_Support) can be used.
-- [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) (tested with v2.0.3-20241016)
-
-### Optional Hardware
-- XY stage for multi-position acquisition
-- Arduino/Teensy-controlled shutter device for controlling laser exposure
-- Arduino/Teensy-controlled neon light source for rough calibration
-
-The Arduino firmware for the shutter and neon light source is available in the `arduino` directory of this repository. You can upload it to your Arduino/Teensy board using the Arduino IDE.
-
 ## Profile Configuration
 
-AutoOpenRaman uses `profile.yml` to track hardware connections and configurations. The file is located in the `~/autoopenraman` directory on Mac and Linux, and in `%USERPROFILE%\autoopenraman` on Windows.
+AutoOpenRaman uses `profile.yml` to track hardware connections and configurations. On first run, the package automatically copies `.sample_autoopenraman_profile.yml` from the repository to `~/autoopenraman/profile.yml` (Mac/Linux) or `%USERPROFILE%\autoopenraman\profile.yml` (Windows). Edit that file to match your hardware before use.
 
 The profile includes the following key settings:
 
@@ -174,7 +158,7 @@ Follow the installation instructions above to set up the development environment
 
 ### Testing
 
-Make sure the configuration file `profile.yml` is set up correctly and Micro-Manager is running with the demo configuration before running the tests.
+Make sure Micro-Manager is running with the demo configuration before running the tests. If `profile.yml` does not yet exist in `~/autoopenraman/`, it will be created automatically from the sample on first import.
 
 We use `pytest` for testing. The tests are found in `autoopenraman/tests/test_gui.py`. To run the tests, run the following command from the root directory of the repository:
 
@@ -185,22 +169,23 @@ pytest -v
 
 ### Managing dependencies
 
-We use poetry to manage dependencies. To add a new dependency, use the following command:
+We use uv to manage dependencies. To add a new dependency, use the following command:
 
 ```bash
-poetry add some-package
+uv add some-package
 ```
 
 To add a new development dependency, use the following command:
 
 ```bash
-poetry add -G dev some-dev-package
+uv add --dev some-dev-package
 ```
 
 To update a dependency, use the following command:
 
 ```bash
-poetry update some-package
+uv lock --upgrade-package some-package
+uv sync
 ```
 
-Whenever you add or update a dependency, poetry will automatically update both `pyproject.toml` and the `poetry.lock` file. Make sure to commit the changes to these files to the repo.
+Whenever you add or update a dependency, uv will automatically update both `pyproject.toml` and the `uv.lock` file. Make sure to commit the changes to these files to the repo.
