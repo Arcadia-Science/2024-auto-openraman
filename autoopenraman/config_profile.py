@@ -1,3 +1,5 @@
+import importlib.resources
+import shutil
 from pathlib import Path
 
 import yaml
@@ -23,7 +25,11 @@ class AutoOpenRamanProfile:
         self._profile = self._load_profile_from_json()
 
         # initialize profile
-        self.init_profile()
+        self.environment = None
+        self.save_dir = None
+        self.shutter_name = None
+        if self._profile:
+            self.init_profile()
 
     def init_profile(self, environment: str | None = None):
         """Initialize the profile.
@@ -61,6 +67,16 @@ class AutoOpenRamanProfile:
             with open(self._profile_path) as file:
                 return yaml.safe_load(file)
 
-        except FileNotFoundError as e:
-            print(f"Profile file not found: {e}")
-            return {}
+        except FileNotFoundError:
+            sample = importlib.resources.files("autoopenraman").joinpath("sample_profile.yml")
+            try:
+                with importlib.resources.as_file(sample) as sample_path:
+                    shutil.copy(sample_path, self._profile_path)
+                print(f"Created default profile at {self._profile_path} from sample.")
+                with open(self._profile_path) as file:
+                    return yaml.safe_load(file)
+            except FileNotFoundError:
+                print(
+                    f"Profile file not found at {self._profile_path} and no sample profile found."
+                )
+                return {}

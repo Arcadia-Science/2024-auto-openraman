@@ -604,12 +604,12 @@ class AutoOpenRamanGUI(QMainWindow):
     def browse_experiment_dir(self):
         """Open directory dialog to select experiment directory"""
         dir_path = QFileDialog.getExistingDirectory(
-            self, "Select Experiment Directory", str(config_profile.save_dir)
+            self, "Select Experiment Directory", str(config_profile.save_dir or "")
         )
         if dir_path:
             # Get relative path from save_dir if possible
             try:
-                rel_path = Path(dir_path).relative_to(config_profile.save_dir)
+                rel_path = Path(dir_path).relative_to(config_profile.save_dir or dir_path)
                 self.exp_dir_input.setText(str(rel_path))
             except ValueError:
                 # If not relative to save_dir, use absolute path
@@ -631,6 +631,9 @@ class AutoOpenRamanGUI(QMainWindow):
             return
 
         # Validate and create experiment directory
+        if config_profile.save_dir is None:
+            print("Error: Profile save_dir is not configured.")
+            return
         exp_path = Path(config_profile.save_dir) / exp_dir
 
         if not exp_path.is_dir():
@@ -1224,7 +1227,7 @@ class AcquisitionWorker(QThread):
                     # open shutter before first image series
                     self._set_shutter_open_safe(is_open=True)
 
-                print(f"Acquiring image {event["axes"]["avg_index"] + 1}/{self.n_averages}")
+                print(f"Acquiring image {event['axes']['avg_index'] + 1}/{self.n_averages}")
                 result = future.await_image_saved(None, return_image=True, return_metadata=True)
                 if result is None:
                     print("Error: No image or metadata returned.")

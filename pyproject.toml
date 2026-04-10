@@ -1,90 +1,78 @@
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
-build-backend = "poetry_dynamic_versioning.backend"
+requires = ["hatchling>=1.21", "hatch-vcs"]
+build-backend = "hatchling.build"
 
-[tool.poetry-dynamic-versioning]
-enable = true
-strict = false
-vcs = "git"
-# The "pep440" style appends the git commit hash to the version number when there are commits
-# on `main` since the last tag.
-style = "pep440"
-# Append a flag to the version number if there are uncommitted changes.
-dirty = true
+[tool.hatch.version]
+source = "vcs"
 
-[tool.poetry]
+[tool.hatch.version.raw-options]
+# Append .dirty when there are uncommitted changes (mirrors poetry-dynamic-versioning dirty=true)
+local_scheme = "dirty-tag"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["autoopenraman"]
+include = ["autoopenraman/sample_profile.yml"]
+
+[project]
 name = "autoopenraman"
-# This version is a placeholder. It will be updated at build time by poetry-dynamic-versioning
-# from the latest git tag.
-version = "0.0.1"
+dynamic = ["version"]
 description = "Automation of OpenRaman"
-authors = ["Ilya Kolb <ilya.kolb.0@gmail.com>"]
+authors = [{ name = "Ilya Kolb", email = "ilya.kolb.0@gmail.com" }]
 readme = "README.md"
-license = "MIT"
-packages = [{ include = "autoopenraman" }]
-homepage = "https://github.com/Arcadia-Science/"
-repository = "https://github.com/Arcadia-Science/2024-auto-openraman"
-documentation = "https://github.com/Arcadia-Science/2024-auto-openraman/blob/main/README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "matplotlib==3.9.2",
+    "numpy==1.26.4",
+    "click==8.1.7",
+    "scipy==1.14.1",
+    "pandas==2.2.3",
+    "tk==0.1.0",
+    "pycromanager==1.0.2",
+    "pyyaml==6.0.3",
+    "pyqt5==5.15.11",
+    # Pin pyqt5-qt5 to 5.15.2 on Windows to avoid installation errors
+    "pyqt5-qt5==5.15.17; sys_platform == 'darwin'",
+    "pyqt5-qt5==5.15.2; sys_platform == 'win32'",
+    "pyqtgraph==0.13.7",
+    "arcadia-pycolor==0.6.2",
+    "ramanspy==0.2.10",
+    "beautifulsoup4==4.13.4",
+    "ipykernel==6.29.5",
+    "jupyter==1.1.1",
+]
 
-[tool.poetry.scripts]
+[project.urls]
+Homepage = "https://github.com/Arcadia-Science/"
+Repository = "https://github.com/Arcadia-Science/2024-auto-openraman"
+Documentation = "https://github.com/Arcadia-Science/2024-auto-openraman/blob/main/README.md"
+
+[project.scripts]
 autoopenraman = "autoopenraman.cli:main"
 
-[[tool.poetry.source]]
-name = "pypi"
-priority = "primary"
+[project.optional-dependencies]
+docs = [
+    "sphinx==6.1.0",
+    "sphinx-copybutton==0.5.2",
+    "furo==2024.5.6",
+    "myst-parser==3.0.1",
+    "sphinx-autoapi==3.1.2",
+    "sphinx-tabs==3.4.5",
+    "nbsphinx==0.9.5",
+    "jupyterlab==4.2.5",
+    "matplotlib==3.9.2",
+]
 
-[[tool.poetry.source]]
-name = "pypi_test"
-# Note: poetry only support the "legacy" API.
-url = "https://test.pypi.org/legacy/"
-
-[tool.poetry.dependencies]
-python = ">=3.10,<3.13"
-matplotlib = "^3.9.2"
-numpy = "^1.26.4"
-click = "^8.1.7"
-scipy = "^1.14.1"
-pandas = "^2.2.3"
-pathlib = "^1.0.1"
-tk = "^0.1.0"
-pycromanager = {git = "https://github.com/micro-manager/pycro-manager.git"}
-pyqt5 = "^5.15.11"
-
-# Currently, it is necessary to pin pyqt5-qt5 to 5.15.2 on Windows only to avoid installation error
-pyqt5-qt5 = [
-    {platform = "darwin", version = "^5.15.17"},
-    {platform = "win32", version = "5.15.2"}]
-
-pyqtgraph = "^0.13.7"
-arcadia-pycolor = "^0.6.2"
-ramanspy = "^0.2.10"
-beautifulsoup4 = "^4.13.4"
-ipykernel = "^6.29.5"
-jupyter = "^1.1.1"
-
-[tool.poetry.group.dev.dependencies]
-pre-commit = "3.5.0"
-pyright = "^1.1.367"
-pytest = "8.2.1"
-ruff = "0.4.4"
-
-[tool.poetry.group.build.dependencies]
-poetry-dynamic-versioning = { extras = ["plugin"], version = "^1.4.0" }
-
-[tool.poetry.group.docs]
-optional = true
-
-[tool.poetry.group.docs.dependencies]
-sphinx = "6.1.0"
-sphinx-copybutton = "0.5.2"
-furo = "2024.5.6"
-myst-parser = "3.0.1"
-sphinx-autoapi = "3.1.2"
-sphinx-tabs = "3.4.5"
-nbsphinx = "0.9.5"
-# Jupyterlab and matplotlib are needed for notebook rendering.
-jupyterlab = "4.2.5"
-matplotlib = "3.9.2"
+[dependency-groups]
+dev = [
+    "pre-commit==3.5.0",
+    "pyright>=1.1.367",
+    "pytest==8.2.1",
+    "ruff==0.4.4",
+]
 
 [tool.ruff]
 # The directories to consider when resolving first- vs. third-party imports.

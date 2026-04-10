@@ -1,6 +1,5 @@
 import pickle
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from scipy.signal import find_peaks, medfilt
@@ -155,7 +154,7 @@ class RamanCalibrator:
         self.pixel_indices = np.array([])  # Original pixel indices initialized as an empty array
         self.rough_calibration_wavelengths = None  # Wavelengths from rough calibration
         self.wavenumbers = None  # Final calibrated wavenumbers
-        self.calibration_coefficients: dict[str, Optional[np.ndarray]] = {
+        self.calibration_coefficients: dict[str, np.ndarray | None] = {
             "rough": None,  # Coefficients for pixel to wavelength
             "fine": None,  # Coefficients for rough wavenumber to final wavenumber
         }
