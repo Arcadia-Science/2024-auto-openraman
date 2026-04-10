@@ -12,7 +12,7 @@ To reproduce the plots from **Figure 4** of the pub, navigate to the `notebooks`
 
 - A computer running Windows (tested), macOS (tested), or Linux (not tested)
 - [OpenRAMAN spectrometer](https://www.open-raman.org/) camera (Blackfly BFS-U3-31S4M-C; FLIR), connected to the PC by USB. Alternatively, any camera [supported by Micro-Manager](https://micro-manager.org/Device_Support) can be used.
-- [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds) (tested with v2.0.3-20241016)
+- [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds)
 
 ### Optional Hardware
 - XY stage for multi-position acquisition

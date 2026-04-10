@@ -76,5 +76,7 @@ class AutoOpenRamanProfile:
                 with open(self._profile_path) as file:
                     return yaml.safe_load(file)
             except FileNotFoundError:
-                print(f"Profile file not found at {self._profile_path} and no sample profile found.")
+                print(
+                    f"Profile file not found at {self._profile_path} and no sample profile found."
+                )
                 return {}
