@@ -17,7 +17,7 @@ Figures will be plotted inline and saved to `figs/random_spectra_plot.pdf` and `
 
 ## Requirements
 
-- A computer running Windows (tested), macOS (tested), or Linux (not tested)
+- A computer running Windows (tested), macOS (tested), or Linux (*warning: not tested*), Python 3.10-3.12
 - [OpenRAMAN spectrometer](https://www.open-raman.org/) camera (Blackfly BFS-U3-31S4M-C; FLIR), connected to the PC by USB. Alternatively, any camera [supported by Micro-Manager](https://micro-manager.org/Device_Support) can be used.
 - [Micro-Manager 2.0](https://micro-manager.org/Micro-Manager_Nightly_Builds)
 
@@ -89,12 +89,10 @@ environment: testing
 
 # Testing environment settings (uses simulated devices)
 testing:
-  save_dir: ~/autoopenraman/data
   shutter_name: DemoShutter
 
 # Deployment environment settings (for real hardware)
 deployment:
-  save_dir: ~/experiments/raman_data
   shutter_name: ArduinoShutter  # Replace with your actual shutter device name
 ```
 
