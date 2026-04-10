@@ -1,3 +1,5 @@
+import importlib.resources
+import shutil
 from pathlib import Path
 
 import yaml
@@ -66,13 +68,13 @@ class AutoOpenRamanProfile:
                 return yaml.safe_load(file)
 
         except FileNotFoundError:
-            sample = Path(__file__).parent.parent / ".sample_autoopenraman_profile.yml"
-            if sample.exists():
-                import shutil
-
-                shutil.copy(sample, self._profile_path)
+            sample = importlib.resources.files("autoopenraman").joinpath("sample_profile.yml")
+            try:
+                with importlib.resources.as_file(sample) as sample_path:
+                    shutil.copy(sample_path, self._profile_path)
                 print(f"Created default profile at {self._profile_path} from sample.")
                 with open(self._profile_path) as file:
                     return yaml.safe_load(file)
-            print(f"Profile file not found at {self._profile_path} and no sample profile found.")
-            return {}
+            except FileNotFoundError:
+                print(f"Profile file not found at {self._profile_path} and no sample profile found.")
+                return {}

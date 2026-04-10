@@ -1,0 +1,9 @@
+environment: testing
+
+deployment:
+
+  shutter_name: 'deployment_shutter'
+
+testing:
+
+  shutter_name: 'White Light Shutter'

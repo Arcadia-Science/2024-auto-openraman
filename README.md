@@ -72,7 +72,7 @@ The GUI provides a unified interface where you can switch between:
 
 ## Profile Configuration
 
-AutoOpenRaman uses `profile.yml` to track hardware connections and configurations. On first run, the package automatically copies `.sample_autoopenraman_profile.yml` from the repository to `~/autoopenraman/profile.yml` (Mac/Linux) or `%USERPROFILE%\autoopenraman\profile.yml` (Windows). Edit that file to match your hardware before use.
+AutoOpenRaman uses `profile.yml` to track hardware connections and configurations. On first run, the package automatically copies `sample_profile.yml` from the repository to `~/autoopenraman/profile.yml` (Mac/Linux) or `%USERPROFILE%\autoopenraman\profile.yml` (Windows).
 
 The profile includes the following key settings:
 

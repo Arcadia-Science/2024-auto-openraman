@@ -14,6 +14,7 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["autoopenraman"]
+include = ["autoopenraman/sample_profile.yml"]
 
 [project]
 name = "autoopenraman"
