@@ -4,9 +4,16 @@ This repo contains a Python package called `autoopenraman`. It uses Micro-Manage
 
 ![neon-livemode-trimmed-cropped](https://github.com/user-attachments/assets/112d72d0-c514-4c67-b598-cf7b13f4f842)
 
-## Figure reproducibility
+## Reproducing figures
 
-To reproduce the plots from **Figure 4** of the pub, navigate to the `notebooks` folder and run the notebook `analyze-chlamy-plate.ipynb`.
+To reproduce the plots from **Figure 4** of the pub, from the main code directory run:
+
+```bash
+cd notebooks
+uv run jupyter notebook analyze-chlamy-plate.ipynb
+```
+
+Figures will be plotted inline and saved to `figs/random_spectra_plot.pdf` and `figs/nmf_plot.pdf`.
 
 ## Requirements
 
