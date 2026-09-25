@@ -206,7 +206,7 @@ requires-dist = [
     { name = "furo", marker = "extra == 'docs'", specifier = "==2024.5.6" },
     { name = "ipykernel", specifier = "==6.29.5" },
     { name = "jupyter", specifier = "==1.1.1" },
-    { name = "jupyterlab", marker = "extra == 'docs'", specifier = "==4.2.5" },
+    { name = "jupyterlab", marker = "extra == 'docs'", specifier = "==4.5.10" },
     { name = "matplotlib", specifier = "==3.9.2" },
     { name = "matplotlib", marker = "extra == 'docs'", specifier = "==3.9.2" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = "==3.0.1" },
@@ -1254,7 +1254,7 @@ wheels = [
 
 [[package]]
 name = "jupyterlab"
-version = "4.2.5"
+version = "4.5.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "async-lru" },
@@ -1271,10 +1271,11 @@ dependencies = [
     { name = "tomli", marker = "python_full_version < '3.11'" },
     { name = "tornado" },
     { name = "traitlets" },
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4a/78/ba006df6edaa561fe40be26c35e9da3f9316f071167cd7cc1a1a25bd2664/jupyterlab-4.2.5.tar.gz", hash = "sha256:ae7f3a1b8cb88b4f55009ce79fa7c06f99d70cd63601ee4aa91815d054f46f75", size = 21508698, upload-time = "2024-08-26T19:35:25.726Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/74/24/621aa20ec0d2fe72f52095bda0fc1be7738ac21aabe4129ff623140d5cdf/jupyterlab-4.5.10.tar.gz", hash = "sha256:77e8d80b78be59b2eaba2154562e21caa6e79c2f1281d6f486584f7144ee2f47", size = 23998879, upload-time = "2026-07-21T12:43:27.324Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fd/3f/24a0f0ce60959cfd9756a3291cd3a5581e51cbd6f7b4aa121f5bba5320e3/jupyterlab-4.2.5-py3-none-any.whl", hash = "sha256:73b6e0775d41a9fee7ee756c80f58a6bed4040869ccc21411dc559818874d321", size = 11641981, upload-time = "2024-08-26T19:35:20.716Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/c9/940f95f17ee4e413ad252bf8d4f2ee9a341f18cfeda87775fef3d7847321/jupyterlab-4.5.10-py3-none-any.whl", hash = "sha256:5967ca61e692e67a2f30b5a2b901c941dc6ce56c0b0e357bc6d34fed5ec095f6", size = 12452502, upload-time = "2026-07-21T12:43:23.542Z" },
 ]
 
 [[package]]
@@ -1692,7 +1693,7 @@ wheels = [
 
 [[package]]
 name = "notebook"
-version = "7.2.3"
+version = "7.5.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jupyter-server" },
@@ -1701,9 +1702,9 @@ dependencies = [
     { name = "notebook-shim" },
     { name = "tornado" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/07/66/d13ec1837cba25b8cfe07a6f727916929dff238023ebaaaeb33ee2359912/notebook-7.2.3.tar.gz", hash = "sha256:3bf03e92f97f0f28bfd3faabe19bdb7fde0c53a58adac78f0b61b1334a53f7a1", size = 5010536, upload-time = "2024-12-05T11:27:14.754Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3e/c4/f71f8716f2903e9e817a47f534b9fd84831e155e2acb32c26691c8e06243/notebook-7.5.7.tar.gz", hash = "sha256:d6d59288a25303b25e1dcb71e9b017ec3a785f7d92f38b9bc288ca1970d5b0a8", size = 14171612, upload-time = "2026-06-04T18:33:45.224Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d0/5f/80555b68f6544afb7ee1d3352a07d76f200fded1467db48927fb3bdaab4f/notebook-7.2.3-py3-none-any.whl", hash = "sha256:6e560b360fc805c88037d5d988ed000347b2200f594c6d0929467c25cd11a79b", size = 5099385, upload-time = "2024-12-05T11:27:11.211Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/4d/b3347f7073a377273531efe4ffc738fc910e93718fd2838c7ebf6736c6af/notebook-7.5.7-py3-none-any.whl", hash = "sha256:1f95f79d117e47d20b5555b5c85a397d2cfecf136978aaab767cf0314b09165b", size = 14583767, upload-time = "2026-06-04T18:33:40.987Z" },
 ]
 
 [[package]]
